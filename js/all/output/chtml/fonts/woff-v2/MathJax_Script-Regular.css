@@ -1,0 +1,15 @@
+/* Automatically generated from: MathJax_Script-Regular.woff 0.0 */
+
+@font-face {
+	font-family: "MathJax_Script";
+	src: 
+		/* The "local" lines will cause the browser to look for a locally */
+		/* installed font with the specified name before downloading the WOFF file. */
+		/* Remove the commenting if you want this behavior. */
+		/* local("MathJax_Script-Regular") */
+		url("MathJax_Script-Regular.woff");
+	font-weight: 400;
+	font-stretch: normal;
+	font-style: normal;
+	unicode-range: U+20, U+41-5A, U+A0, U+EFFD-EFFF;
+}

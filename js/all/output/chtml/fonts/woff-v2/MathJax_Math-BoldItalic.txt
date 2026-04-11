@@ -1,0 +1,17 @@
+Family:              MathJax_Math
+Subfamily:           Bold Italic
+Full name:           MathJax_Math-BoldItalic
+PostScript name:     MathJax_Math-BoldItalic
+Preferred family:    MathJax_Math
+Preferred subfamily: BoldItalic
+Version:             Version 1.1
+Unique ID:           FontForge 2.0 : MathJax_Math-BoldItalic
+Copyright:           Copyright (c) 2009-2010 Design Science, Inc.
+License URL:         http://scripts.sil.org/OFL
+License Description: Copyright (c) 2009-2010, Design Science, Inc. (<www.mathjax.org>),
+with Reserved Font Name MathJax_Math.
+
+This Font Software is licensed under the SIL Open Font License, Version 1.1.
+This license available with a FAQ at:
+http://scripts.sil.org/OFL
+Vendor ID:           PfEd

@@ -1,0 +1,38 @@
+/* Automatically generated from: MathJax_Main-Bold.woff 0.0 */
+
+@font-face {
+	font-family: "MathJax_Main";
+	src: 
+		/* The "local" lines will cause the browser to look for a locally */
+		/* installed font with the specified name before downloading the WOFF file. */
+		/* Remove the commenting if you want this behavior. */
+		/* local("MathJax_Main-Bold") */
+		url("MathJax_Main-Bold.woff");
+	font-weight: 700;
+	font-stretch: normal;
+	font-style: normal;
+	unicode-range: U+20-7E, U+A0, U+A8, U+AC,
+		U+AF-B1, U+B4, U+D7, U+F7,
+		U+131, U+237, U+2C6-2C7, U+2C9-2CB,
+		U+2D8-2DA, U+2DC, U+300-304, U+306-308,
+		U+30A-30C, U+338, U+393-394, U+398,
+		U+39B, U+39E, U+3A0, U+3A3,
+		U+3A5-3A6, U+3A8-3A9, U+2002-2006, U+2009-200A,
+		U+2013-2014, U+2018-2019, U+201C-201D, U+2020-2021,
+		U+2026, U+2032, U+20D7, U+210F,
+		U+2111, U+2113, U+2118, U+211C,
+		U+2135, U+2190-2199, U+21A6, U+21A9-21AA,
+		U+21BC-21BD, U+21C0-21C1, U+21CC, U+21D0-21D5,
+		U+2200, U+2202-2203, U+2205, U+2207-2209,
+		U+220B, U+2212-2213, U+2215-221A, U+221D-221E,
+		U+2220, U+2223, U+2225, U+2227-222B,
+		U+223C, U+2240, U+2243, U+2245,
+		U+2248, U+224D, U+2250, U+2260-2261,
+		U+2264-2265, U+226A-226B, U+227A-227B, U+2282-2283,
+		U+2286-2287, U+228E, U+2291-2299, U+22A2-22A5,
+		U+22A8, U+22C4-22C6, U+22C8, U+22EE-22EF,
+		U+22F1, U+2308-230B, U+2322-2323, U+25B3,
+		U+25B9, U+25BD, U+25C3, U+25EF,
+		U+2660-2663, U+266D-266F, U+27E8-27E9, U+27F5-27FA,
+		U+27FC, U+2A3F, U+2AAF-2AB0, U+EFFD-EFFF;
+}

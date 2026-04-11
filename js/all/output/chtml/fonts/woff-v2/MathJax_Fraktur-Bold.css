@@ -1,0 +1,17 @@
+/* Automatically generated from: MathJax_Fraktur-Bold.woff 0.0 */
+
+@font-face {
+	font-family: "MathJax_Fraktur";
+	src: 
+		/* The "local" lines will cause the browser to look for a locally */
+		/* installed font with the specified name before downloading the WOFF file. */
+		/* Remove the commenting if you want this behavior. */
+		/* local("MathJax_Fraktur-Bold") */
+		url("MathJax_Fraktur-Bold.woff");
+	font-weight: 700;
+	font-stretch: normal;
+	font-style: normal;
+	unicode-range: U+20-22, U+26-3B, U+3D, U+3F,
+		U+41-5B, U+5D-5E, U+61-7A, U+A0,
+		U+2018-2019, U+E301-E305, U+E308-E309, U+EFFD-EFFF;
+}

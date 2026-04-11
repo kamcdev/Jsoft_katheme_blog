@@ -1,0 +1,20 @@
+/* Automatically generated from: MathJax_SansSerif-Bold.woff 0.0 */
+
+@font-face {
+	font-family: "MathJax_SansSerif";
+	src: 
+		/* The "local" lines will cause the browser to look for a locally */
+		/* installed font with the specified name before downloading the WOFF file. */
+		/* Remove the commenting if you want this behavior. */
+		/* local("MathJax_SansSerif-Bold") */
+		url("MathJax_SansSerif-Bold.woff");
+	font-weight: 700;
+	font-stretch: normal;
+	font-style: normal;
+	unicode-range: U+20-3B, U+3D, U+3F-5B, U+5D-5F,
+		U+61-7A, U+7E, U+A0, U+131,
+		U+237, U+300-304, U+306-308, U+30A-30C,
+		U+393-394, U+398, U+39B, U+39E,
+		U+3A0, U+3A3, U+3A5-3A6, U+3A8-3A9,
+		U+2013-2014, U+2018-2019, U+201C-201D, U+EFFD-EFFF;
+}

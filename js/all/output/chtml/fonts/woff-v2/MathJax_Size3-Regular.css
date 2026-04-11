@@ -1,0 +1,18 @@
+/* Automatically generated from: MathJax_Size3-Regular.woff 0.0 */
+
+@font-face {
+	font-family: "MathJax_Size3";
+	src: 
+		/* The "local" lines will cause the browser to look for a locally */
+		/* installed font with the specified name before downloading the WOFF file. */
+		/* Remove the commenting if you want this behavior. */
+		/* local("MathJax_Size3-Regular") */
+		url("MathJax_Size3-Regular.woff");
+	font-weight: 400;
+	font-stretch: normal;
+	font-style: normal;
+	unicode-range: U+20, U+28-29, U+2F, U+5B-5D,
+		U+7B, U+7D, U+A0, U+2C6,
+		U+2DC, U+302-303, U+221A, U+2308-230B,
+		U+27E8-27E9, U+EFFD-EFFF;
+}

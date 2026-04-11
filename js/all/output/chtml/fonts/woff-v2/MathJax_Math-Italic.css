@@ -1,0 +1,19 @@
+/* Automatically generated from: MathJax_Math-Italic.woff 0.0 */
+
+@font-face {
+	font-family: "MathJax_Math";
+	src: 
+		/* The "local" lines will cause the browser to look for a locally */
+		/* installed font with the specified name before downloading the WOFF file. */
+		/* Remove the commenting if you want this behavior. */
+		/* local("MathJax_Math-Italic") */
+		url("MathJax_Math-Italic.woff");
+	font-weight: 400;
+	font-stretch: normal;
+	font-style: italic;
+	unicode-range: U+20, U+2F, U+41-5A, U+61-7A,
+		U+A0, U+393-394, U+398, U+39B,
+		U+39E, U+3A0, U+3A3, U+3A5-3A6,
+		U+3A8-3A9, U+3B1-3C9, U+3D1, U+3D5-3D6,
+		U+3F1, U+3F5, U+EFFD-EFFF;
+}

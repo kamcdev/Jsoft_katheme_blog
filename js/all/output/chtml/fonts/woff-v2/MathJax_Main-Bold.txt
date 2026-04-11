@@ -1,0 +1,17 @@
+Family:              MathJax_Main
+Subfamily:           Bold
+Full name:           MathJax_Main-Bold
+PostScript name:     MathJax_Main-Bold
+Preferred family:    MathJax_Main
+Preferred subfamily: Bold
+Version:             Version 1.1
+Unique ID:           FontForge 2.0 : MathJax_Main-Bold
+Copyright:           Copyright (c) 2009-2010 Design Science, Inc.
+License URL:         http://scripts.sil.org/OFL
+License Description: Copyright (c) 2009-2010, Design Science, Inc. (<www.mathjax.org>),
+with Reserved Font Name MathJax_Main.
+
+This Font Software is licensed under the SIL Open Font License, Version 1.1.
+This license available with a FAQ at:
+http://scripts.sil.org/OFL
+Vendor ID:           PfEd

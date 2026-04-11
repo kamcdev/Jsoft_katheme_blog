@@ -1,0 +1,40 @@
+/* Automatically generated from: MathJax_AMS-Regular.woff 0.0 */
+
+@font-face {
+	font-family: "MathJax_AMS";
+	src: 
+		/* The "local" lines will cause the browser to look for a locally */
+		/* installed font with the specified name before downloading the WOFF file. */
+		/* Remove the commenting if you want this behavior. */
+		/* local("MathJax_AMS-Regular") */
+		url("MathJax_AMS-Regular.woff");
+	font-weight: 400;
+	font-stretch: normal;
+	font-style: normal;
+	unicode-range: U+20, U+41-5A, U+6B, U+A0,
+		U+A5, U+AE, U+F0, U+127,
+		U+2C6, U+2DC, U+302-303, U+3DD,
+		U+3F0, U+2035, U+210F, U+2127,
+		U+2132, U+2136-2138, U+2141, U+2190,
+		U+2192, U+219A-219B, U+219E, U+21A0,
+		U+21A2-21A3, U+21AB-21AE, U+21B0-21B1, U+21B6-21B7,
+		U+21BA-21BB, U+21BE-21BF, U+21C2-21C4, U+21C6-21CF,
+		U+21DA-21DB, U+21DD, U+21E0, U+21E2,
+		U+2201, U+2204-2205, U+220D, U+2212,
+		U+2214, U+2216, U+221D, U+2220-2226,
+		U+2234-2235, U+223C-223D, U+2241-2242, U+2246,
+		U+2248, U+224A, U+224E-224F, U+2251-2253,
+		U+2256-2257, U+225C, U+2266-2269, U+226C,
+		U+226E-2273, U+2276-2277, U+227C-2281, U+2288-228B,
+		U+228F-2290, U+229A-229B, U+229D-22A1, U+22A8-22AA,
+		U+22AC-22AF, U+22B2-22B5, U+22B8, U+22BA-22BC,
+		U+22C5, U+22C7, U+22C9-22D4, U+22D6-22DB,
+		U+22DE-22E1, U+22E6-22ED, U+2322-2323, U+24C8,
+		U+250C, U+2510, U+2514, U+2518,
+		U+2571-2572, U+25A0-25A1, U+25B2-25B3, U+25B6,
+		U+25BC-25BD, U+25C0, U+25CA, U+2605,
+		U+2713, U+2720, U+29EB, U+2A5E,
+		U+2A7D-2A7E, U+2A85-2A8C, U+2A95-2A96, U+2AB5-2ABA,
+		U+2AC5-2AC6, U+2ACB-2ACC, U+E006-E009, U+E00C-E011,
+		U+E016-E01B, U+EFFD-EFFF;
+}

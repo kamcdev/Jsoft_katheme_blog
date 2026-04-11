@@ -1,0 +1,17 @@
+/* Automatically generated from: MathJax_WinChrome-Regular.woff 0.0 */
+
+@font-face {
+	font-family: "MathJax_WinChrome";
+	src: 
+		/* The "local" lines will cause the browser to look for a locally */
+		/* installed font with the specified name before downloading the WOFF file. */
+		/* Remove the commenting if you want this behavior. */
+		/* local("MathJax_WinChrome-Regular") */
+		url("MathJax_WinChrome-Regular.woff");
+	font-weight: 400;
+	font-stretch: normal;
+	font-style: normal;
+	unicode-range: U+20, U+3E, U+54, U+64,
+		U+A0, U+22C3, U+23A6, U+2A00,
+		U+E2F0-E2F1, U+EFFD-EFFF;
+}

@@ -1,0 +1,17 @@
+Family:              MathJax_Caligraphic
+Subfamily:           Bold
+Full name:           MathJax_Caligraphic-Bold
+PostScript name:     MathJax_Caligraphic-Bold
+Preferred family:    MathJax_Caligraphic
+Preferred subfamily: Bold
+Version:             Version 1.1
+Unique ID:           FontForge 2.0 : MathJax_Caligraphic-Bold
+Copyright:           Copyright (c) 2009-2010 Design Science, Inc.
+License URL:         http://scripts.sil.org/OFL
+License Description: Copyright (c) 2009-2010, Design Science, Inc. (<www.mathjax.org>),
+with Reserved Font Name MathJax_Caligraphic.
+
+This Font Software is licensed under the SIL Open Font License, Version 1.1.
+This license available with a FAQ at:
+http://scripts.sil.org/OFL
+Vendor ID:           PfEd

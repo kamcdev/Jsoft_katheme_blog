@@ -1,0 +1,634 @@
+body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    font-family: Arial, sans-serif;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+body::-webkit-scrollbar {
+    display: none;
+}
+
+::selection {
+    background-color: rgba(243, 216, 13, 0.58);
+    color: white;
+}
+
+::-moz-selection {
+    background-color: rgba(243, 216, 13, 0.58);
+    color: white;
+}
+
+.container {
+    background-image: url('/css/all/bg.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    min-height: 100vh;
+    width: 100vw;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    padding: 40px 0;
+}
+
+.container::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1;
+}
+
+.editor-section {
+    background-color: rgba(0, 0, 0, 0.7);
+    padding: 30px;
+    border-radius: 20px;
+    color: white;
+    text-align: left;
+    max-width: 800px;
+    width: 90%;
+    position: relative;
+    z-index: 2;
+    min-height: 600px;
+    display: flex;
+    flex-direction: column;
+}
+
+.editor-section h1 {
+    font-size: 28px;
+    margin: 0 0 20px 0;
+    text-align: center;
+}
+
+.editor-tabs {
+    display: flex;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    margin-bottom: 20px;
+}
+
+.tab-button {
+    background: none;
+    border: none;
+    color: #ccc;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border-bottom: 2px solid transparent;
+}
+
+.tab-button:hover {
+    color: white;
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.tab-button.active {
+    color: white;
+    border-bottom-color: rgba(243, 216, 13, 0.8);
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.editor-content {
+    flex: 1;
+    position: relative;
+    min-height: 400px;
+}
+
+.tab-content {
+    display: none;
+    height: 100%;
+}
+
+.tab-content.active {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+#markdown-editor {
+    flex: 1;
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    color: white;
+    font-size: 14px;
+    line-height: 1.6;
+    padding: 15px;
+    resize: none;
+    font-family: 'Courier New', monospace;
+    min-height: 300px;
+    overflow-y: auto;
+}
+
+/* 输入框滚动条样式 */
+#markdown-editor::-webkit-scrollbar {
+    width: 8px;
+}
+
+#markdown-editor::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+#markdown-editor::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+}
+
+#markdown-editor::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.5);
+}
+
+#markdown-editor:focus {
+    outline: none;
+    border-color: rgba(243, 216, 13, 0.8);
+    box-shadow: 0 0 0 2px rgba(243, 216, 13, 0.3);
+}
+
+#markdown-editor::placeholder {
+    color: #aaa;
+}
+
+.editor-tools {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+    padding: 10px;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+}
+
+.tool-button {
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.tool-button:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-1px);
+}
+
+.tool-button:active {
+    transform: translateY(0);
+}
+
+#preview-tab {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.preview-content {
+    flex: 1;
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    padding: 20px;
+    overflow-y: auto;
+    max-height: 400px;
+}
+
+.preview-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.preview-content::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.preview-content::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+}
+
+.preview-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.5);
+}
+
+.preview-placeholder {
+    color: #aaa;
+    font-style: italic;
+    text-align: center;
+    margin: 0;
+}
+
+.editor-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.action-button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: bold;
+}
+
+.action-button.primary {
+    background-color: rgba(243, 216, 13, 0.8);
+    color: black;
+}
+
+.action-button.primary:hover {
+    background-color: rgba(243, 216, 13, 1);
+    transform: translateY(-2px);
+}
+
+.action-button.secondary {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.action-button.secondary:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+}
+
+.action-button:active {
+    transform: translateY(0);
+}
+
+/* 预览内容的样式 - 与阅读器保持一致 */
+.preview-content {
+    line-height: 1.8;
+    font-size: 16px;
+}
+
+.preview-content h1 {
+    font-size: 24px;
+    margin-top: 30px;
+    margin-bottom: 15px;
+    color: #fff;
+}
+
+.preview-content h2 {
+    font-size: 20px;
+    margin-top: 25px;
+    margin-bottom: 12px;
+    color: #fff;
+}
+
+.preview-content h3 {
+    font-size: 18px;
+    margin-top: 20px;
+    margin-bottom: 10px;
+    color: #fff;
+}
+
+.preview-content p {
+    margin-bottom: 16px;
+    color: #e0e0e0;
+}
+
+.preview-content a {
+    color: #3cb0df; /* 浅蓝色 */
+    text-decoration: underline;
+    transition: color 0.3s ease;
+}
+
+.preview-content a:hover {
+    color: #00e1ff; /* 更亮的浅蓝色 */
+    text-decoration: underline;
+}
+
+.preview-content ul, .preview-content ol {
+    margin-bottom: 16px;
+    padding-left: 20px;
+}
+
+.preview-content li {
+    margin-bottom: 8px;
+    color: #e0e0e0;
+}
+
+.preview-content blockquote {
+    border-left: 4px solid rgba(255, 255, 255, 0.3);
+    margin: 20px 0;
+    padding-left: 20px;
+    color: #ccc;
+    font-style: italic;
+}
+
+.preview-content code {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #f8f8f2;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: 'Courier New', monospace;
+}
+
+.preview-content pre:not(.code-content pre) {
+    background-color: #1e1e1e;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 15px;
+    overflow-x: auto;
+    margin: 20px 0;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 14px;
+}
+
+.preview-content pre code {
+    background: none;
+    padding: 0;
+    color: #d4d4d4;
+}
+
+/* 代码块容器内部的pre元素应该没有额外样式 */
+.preview-content .code-content pre {
+    background: none;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    margin: 0;
+    overflow: visible;
+}
+
+.preview-content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1em 0;
+}
+
+.preview-content th,
+.preview-content td {
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 8px 12px;
+    text-align: left;
+}
+
+.preview-content th {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.preview-content td {
+    color: #ddd;
+}
+
+/* 代码块容器样式 */
+.preview-content .code-block {
+    background-color: #1e1e1e;
+    border: 1px solid #333;
+    border-radius: 8px;
+    margin: 20px 0;
+    overflow: hidden;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 14px;
+}
+
+/* 代码块标题栏 */
+.preview-content .code-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 16px;
+    background-color: #252526;
+    border-bottom: 1px solid #333;
+    min-height: 36px;
+}
+
+.preview-content .code-language {
+    color: #ccc;
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}
+
+/* 复制按钮样式 */
+.preview-content .copy-button {
+    padding: 4px 12px;
+    background-color: #333;
+    color: #fff;
+    border: 1px solid #555;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    font-family: inherit;
+    transition: all 0.3s ease;
+    opacity: 0.8;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}
+
+.preview-content .copy-button:hover {
+    background-color: #444;
+    border-color: #666;
+    opacity: 1;
+    transform: translateY(-1px);
+}
+
+.preview-content .copy-button:active {
+    transform: translateY(0);
+}
+
+/* 复制成功状态 */
+.preview-content .copy-button.copied {
+    background-color: #4CAF50;
+    border-color: #4CAF50;
+}
+
+.preview-content .copy-button.error {
+    background-color: #f44336;
+    border-color: #f44336;
+}
+
+/* 代码内容区域 */
+.preview-content .code-content {
+    padding: 16px;
+    overflow-x: auto;
+    line-height: 1.5;
+}
+
+/* 语法高亮颜色 */
+.preview-content .highlight .keyword { color: #569cd6; }  /* 蓝色 - 关键字 */
+.preview-content .highlight .string { color: #ce9178; }   /* 橙色 - 字符串 */
+.preview-content .highlight .comment { color: #6a9955; }  /* 绿色 - 注释 */
+.preview-content .highlight .function { color: #dcdcaa; } /* 黄色 - 函数名 */
+.preview-content .highlight .number { color: #b5cea8; }   /* 浅绿色 - 数字 */
+.preview-content .highlight .operator { color: #d4d4d4; } /* 白色 - 操作符 */
+
+/* 不同语言的代码块样式 */
+.preview-content .code-block.language-python { border-left: 4px solid #3572A5; }
+.preview-content .code-block.language-javascript { border-left: 4px solid #f1e05a; }
+.preview-content .code-block.language-html { border-left: 4px solid #e34c26; }
+.preview-content .code-block.language-css { border-left: 4px solid #563d7c; }
+.preview-content .code-block.language-cpp { border-left: 4px solid #f34b7d; }
+.preview-content .code-block.language-java { border-left: 4px solid #b07219; }
+.preview-content .code-block.language-typescript { border-left: 4px solid #2b7489; }
+.preview-content .code-block.language-go { border-left: 4px solid #00ADD8; }
+.preview-content .code-block.language-rust { border-left: 4px solid #dea584; }
+.preview-content .code-block.language-php { border-left: 4px solid #4F5D95; }
+.preview-content .code-block.language-ruby { border-left: 4px solid #701516; }
+.preview-content .code-block.language-swift { border-left: 4px solid #ffac45; }
+.preview-content .code-block.language-kotlin { border-left: 4px solid #F18E33; }
+.preview-content .code-block.language-csharp { border-left: 4px solid #178600; }
+.preview-content .code-block.language-c { border-left: 4px solid #555555; }
+.preview-content .code-block.language-bash { border-left: 4px solid #89e051; }
+.preview-content .code-block.language-shell { border-left: 4px solid #89e051; }
+.preview-content .code-block.language-sql { border-left: 4px solid #e38c00; }
+.preview-content .code-block.language-json { border-left: 4px solid #292929; }
+.preview-content .code-block.language-xml { border-left: 4px solid #0060ac; }
+.preview-content .code-block.language-markdown { border-left: 4px solid #083fa1; }
+.preview-content .code-block.language-yaml { border-left: 4px solid #cb171e; }
+.preview-content .code-block.language-dockerfile { border-left: 4px solid #384d54; }
+.preview-content .code-block.language-lua { border-left: 4px solid #000080; }
+.preview-content .code-block.language-perl { border-left: 4px solid #0298c3; }
+.preview-content .code-block.language-r { border-left: 4px solid #198CE7; }
+.preview-content .code-block.language-matlab { border-left: 4px solid #e16737; }
+.preview-content .code-block.language-scala { border-left: 4px solid #c22d40; }
+.preview-content .code-block.language-haskell { border-left: 4px solid #5e5086; }
+.preview-content .code-block.language-elixir { border-left: 4px solid #6e4a7e; }
+.preview-content .code-block.language-clojure { border-left: 4px solid #db5855; }
+.preview-content .code-block.language-erlang { border-left: 4px solid #B83998; }
+.preview-content .code-block.language-groovy { border-left: 4px solid #e69f56; }
+.preview-content .code-block.language-dart { border-left: 4px solid #00B4AB; }
+.preview-content .code-block.language-julia { border-left: 4px solid #a270ba; }
+.preview-content .code-block.language-nim { border-left: 4px solid #37775b; }
+.preview-content .code-block.language-crystal { border-left: 4px solid #000100; }
+.preview-content .code-block.language-ocaml { border-left: 4px solid #3be133; }
+.preview-content .code-block.language-pascal { border-left: 4px solid #E3F171; }
+.preview-content .code-block.language-prolog { border-left: 4px solid #74283c; }
+.preview-content .code-block.language-scheme { border-left: 4px solid #1e4aec; }
+.preview-content .code-block.language-racket { border-left: 4px solid #3c5caa; }
+.preview-content .code-block.language-common-lisp { border-left: 4px solid #3fb68b; }
+.preview-content .code-block.language-coffeescript { border-left: 4px solid #244776; }
+.preview-content .code-block.language-livescript { border-left: 4px solid #499886; }
+.preview-content .code-block.language-elm { border-left: 4px solid #60B5CC; }
+.preview-content .code-block.language-purescript { border-left: 4px solid #1D222D; }
+.preview-content .code-block.language-reason { border-left: 4px solid #ff5847; }
+.preview-content .code-block.language-vue { border-left: 4px solid #2c3e50; }
+.preview-content .code-block.language-angular { border-left: 4px solid #dd0031; }
+.preview-content .code-block.language-react { border-left: 4px solid #61dafb; }
+.preview-content .code-block.language-svelte { border-left: 4px solid #ff3e00; }
+.preview-content .code-block.language-solidity { border-left: 4px solid #AA6746; }
+.preview-content .code-block.language-vhdl { border-left: 4px solid #adb2cb; }
+.preview-content .code-block.language-verilog { border-left: 4px solid #b2b7f8; }
+.preview-content .code-block.language-systemverilog { border-left: 4px solid #DAE1C2; }
+.preview-content .code-block.language-text { border-left: 4px solid #666; }
+
+/* Markdown文本格式样式 */
+.preview-content u {
+    text-decoration: underline;
+    text-decoration-color: rgba(255, 255, 255, 0.6);
+}
+
+.preview-content del, .preview-content strike {
+    text-decoration: line-through;
+    text-decoration-color: rgba(255, 0, 0, 0.6);
+    color: rgba(255, 255, 255, 0.6);
+}
+
+/* 下载附件样式 */
+.preview-content .download-attachment {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 15px;
+    margin: 15px 0;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.preview-content .attachment-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+}
+
+.preview-content .filename {
+    color: white;
+    font-weight: 500;
+    font-size: 16px;
+    flex: 1;
+    word-break: break-all;
+}
+
+.preview-content .download-button {
+    padding: 8px 16px;
+    background-color: #333;
+    color: #fff;
+    border: 1px solid #555;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-family: inherit;
+    transition: all 0.3s ease;
+    opacity: 0.8;
+    white-space: nowrap;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}
+
+.preview-content .download-button:hover {
+    background-color: #444;
+    border-color: #666;
+    opacity: 1;
+    transform: translateY(-1px);
+}
+
+.preview-content .download-button:active {
+    transform: translateY(0);
+}
+
+/* 自定义颜色样式 */
+.preview-content span[style*="color: #FF0000"] {
+    color: #FF0000 !important;
+}
+
+.preview-content span[style*="color: #00FF00"] {
+    color: #00FF00 !important;
+}
+
+.preview-content span[style*="color: #0000FF"] {
+    color: #0000FF !important;
+}
+
+.preview-content span[style*="color: #FFFF00"] {
+    color: #FFFF00 !important;
+}
+
+.preview-content span[style*="background-color: #FF0000"] {
+    background-color: #FF0000 !important;
+    padding: 0 2px;
+}
+
+.preview-content span[style*="background-color: #00FF00"] {
+    background-color: #00FF00 !important;
+    padding: 0 2px;
+}
+
+.preview-content span[style*="background-color: #0000FF"] {
+    background-color: #0000FF !important;
+    padding: 0 2px;
+}

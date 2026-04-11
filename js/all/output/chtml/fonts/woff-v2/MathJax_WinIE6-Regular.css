@@ -1,0 +1,17 @@
+/* Automatically generated from: MathJax_WinIE6-Regular.woff 0.0 */
+
+@font-face {
+	font-family: "MathJax_WinIE6";
+	src: 
+		/* The "local" lines will cause the browser to look for a locally */
+		/* installed font with the specified name before downloading the WOFF file. */
+		/* Remove the commenting if you want this behavior. */
+		/* local("MathJax_WinIE6-Regular") */
+		url("MathJax_WinIE6-Regular.woff");
+	font-weight: 400;
+	font-stretch: normal;
+	font-style: normal;
+	unicode-range: U+20, U+A0, U+E200-E236, U+E240-E276,
+		U+E280-E289, U+E290-E292, U+E295-E296, U+E2A2,
+		U+E2B2, U+E2C0-E2C8, U+E2CA-E2DD, U+EFFD-EFFF;
+}

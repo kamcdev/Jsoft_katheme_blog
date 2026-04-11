@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="msvalidate.01" content="CDD1E0B3687442BDC279F8957E1B2A1B" />
+    <meta name="Bugcool联盟-verification" content="b46ef60788">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="pageTitle">文章标题</title>
+    <link rel="stylesheet" href="/css/read/read.css">
+    <link rel="icon" href="/css/all/favicon.ico" type="image/x-icon">
+    <link rel="shortcut icon" href="/css/all/favicon.ico" type="image/x-icon">
+    <script src="/js/all/polyfill.min.js"></script>
+    <script id="MathJax-script" async src="/js/all/tex-mml-chtml.js"></script>
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']]
+            },
+            svg: {
+                fontCache: 'global'
+            }
+        };
+    </script>
+</head>
+<body>
+    <div class="container">
+        <!-- 目录区域 -->
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h3>目录</h3>
+                <button class="toggle-sidebar" id="toggleSidebar" title="收起目录">
+                    <img src="/css/all/e-c.svg" alt="收起">
+                </button>
+            </div>
+            <div class="sidebar-content" id="sidebarContent">
+                <!-- 目录标签页 -->
+                <div class="directory-tabs" id="directoryTabs">
+                    <div class="directory-tabs-container" id="directoryTabsContainer">
+                        <!-- 分类标签将通过JavaScript动态添加 -->
+                    </div>
+                    <div class="directory-tabs-nav directory-tabs-nav-prev" id="directoryTabsPrev">‹</div>
+                    <div class="directory-tabs-nav directory-tabs-nav-next" id="directoryTabsNext">›</div>
+                </div>
+                
+                <div class="article-list" id="articleList">
+                    <!-- 文章列表将通过JavaScript动态加载 -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- 分隔线 -->
+        <div class="divider" id="divider"></div>
+        
+        <!-- 内容区域 -->
+        <div class="center-section" id="centerSection">
+            <div class="article-header">
+                <button class="back-button" onclick="window.location.href = '/'">← 返回</button>
+                <div class="time-display" id="timeDisplay"></div>
+            </div>
+            <div class="article-info" id="articleInfo">
+                <div class="info-item">
+                    <span class="info-label">更新于</span>
+                    <span class="info-value" id="updateDate">加载中...</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">本文字数</span>
+                    <span class="info-value" id="wordCount">加载中...</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">已阅读时长</span>
+                    <span class="info-value" id="readingTime">0秒</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">许可协议</span>
+                    <span class="info-value">CC BY-NC-SA 4.0</span>
+                </div>
+            </div>
+            <div class="article-content" id="articleContent">
+                
+            </div>
+        </div>
+    </div>
+    
+    <!-- 收起按钮（目录收起时显示） -->
+    <button class="toggle-sidebar collapsed" id="toggleSidebarCollapsed" title="展开目录">
+        <img src="/css/all/e-c.svg" alt="展开">
+    </button>
+    
+    <script src="/js/read/read.js"></script>
+    <script src="/js/security/external-link-warning.js"></script>
+    <script src="/js/read/telemetry.js"></script>
+</body>
+</html>

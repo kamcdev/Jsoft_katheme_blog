@@ -1,0 +1,19 @@
+/* Automatically generated from: MathJax_Typewriter-Regular.woff 0.0 */
+
+@font-face {
+	font-family: "MathJax_Typewriter";
+	src: 
+		/* The "local" lines will cause the browser to look for a locally */
+		/* installed font with the specified name before downloading the WOFF file. */
+		/* Remove the commenting if you want this behavior. */
+		/* local("MathJax_Typewriter-Regular") */
+		url("MathJax_Typewriter-Regular.woff");
+	font-weight: 400;
+	font-stretch: normal;
+	font-style: normal;
+	unicode-range: U+20-7F, U+A0, U+131, U+237,
+		U+300-304, U+306, U+308, U+30A,
+		U+30C, U+393-394, U+398, U+39B,
+		U+39E, U+3A0, U+3A3, U+3A5-3A6,
+		U+3A8-3A9, U+7E2-7E3, U+2032, U+EFFD-EFFF;
+}

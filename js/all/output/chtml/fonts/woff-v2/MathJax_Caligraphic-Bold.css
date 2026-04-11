@@ -1,0 +1,16 @@
+/* Automatically generated from: MathJax_Caligraphic-Bold.woff 0.0 */
+
+@font-face {
+	font-family: "MathJax_Caligraphic";
+	src: 
+		/* The "local" lines will cause the browser to look for a locally */
+		/* installed font with the specified name before downloading the WOFF file. */
+		/* Remove the commenting if you want this behavior. */
+		/* local("MathJax_Caligraphic-Bold") */
+		url("MathJax_Caligraphic-Bold.woff");
+	font-weight: 700;
+	font-stretch: normal;
+	font-style: normal;
+	unicode-range: U+20, U+30-39, U+41-5A, U+A0,
+		U+EFFD-EFFF;
+}

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>manyJ'sBlog - 文章编辑器</title>
+    <link rel="stylesheet" href="/css/editor/editor.css">
+    <link rel="stylesheet" href="/css/all/polyfill.min.css">
+    <link rel="icon" href="/css/all/favicon.ico" type="image/x-icon">
+    <link rel="shortcut icon" href="/css/all/favicon.ico" type="image/x-icon">
+</head>
+<body>
+    <div class="container">
+        <div class="editor-section">
+            <h1>Markdown编辑器</h1>
+            
+            <div class="editor-tabs">
+                <button class="tab-button active" data-tab="edit">编辑</button>
+                <button class="tab-button" data-tab="preview">预览</button>
+            </div>
+            
+            <div class="editor-content">
+                <div class="tab-content active" id="edit-tab">
+                    <textarea id="markdown-editor" placeholder="在这里输入Markdown内容..."></textarea>
+                    <div class="editor-tools">
+                        <button class="tool-button" data-insert="**粗体**">粗体</button>
+                        <button class="tool-button" data-insert="*斜体*">斜体</button>
+                        <button class="tool-button" data-insert="[链接文字](URL)">链接</button>
+                        <button class="tool-button" data-insert="![图片描述](图片URL)">图片</button>
+                        <button class="tool-button" data-insert="
+[dltag:文件名](URL)
+">附件</button>
+                        <button class="tool-button" data-insert="- 列表项">列表</button>
+                        <button class="tool-button" data-insert="
+```
+代码块
+```">代码块</button>
+                        <button class="tool-button" data-insert="%R%文字%NONE%">设置字体色</button>
+                        <button class="tool-button" data-insert="%K%°R°文字°NONE°">设置背景色</button>
+                    </div>
+                </div>
+                
+                <div class="tab-content" id="preview-tab">
+                    <div id="markdown-preview" class="preview-content">
+                        <p class="preview-placeholder">预览内容将在这里显示...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="editor-actions">
+                <button id="clear-button" class="action-button secondary">清空</button>
+                <button id="copy-button" class="action-button secondary">复制</button>
+                <button id="download-button" class="action-button primary">下载</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 引入必要的JavaScript库 -->
+    <script src="/js/all/polyfill.min.js"></script>
+    <script id="MathJax-script" async src="/js/all/tex-mml-chtml.js"></script>
+    <script src="/js/editor/editor.js"></script>
+    <script src="/js/security/external-link-warning.js"></script>
+</body>
+</html>
