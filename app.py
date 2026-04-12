@@ -1,4 +1,4 @@
-from flask import Flask, render_template, send_from_directory, request
+from flask import Flask, render_template, send_from_directory, request, Response
 import os
 import json
 import datetime
@@ -7,8 +7,11 @@ from markdown.extensions.codehilite import CodeHiliteExtension
 from markdown.extensions.fenced_code import FencedCodeExtension
 import mdx_math
 from werkzeug.middleware.proxy_fix import ProxyFix
+import threading
 
 app = Flask(__name__)
+
+BLOG_DIR = os.path.join(os.path.dirname(__file__), 'blogs')
 
 # 获取博客设置的函数
 def get_blog_settings():
@@ -25,6 +28,104 @@ def get_blog_settings():
             print(f"读取博客设置失败: {e}")
             return default_settings
     return default_settings
+
+# RSS 缓存数据
+rss_articles_cache = []
+rss_cache_lock = threading.Lock()
+
+def get_all_articles_for_rss():
+    """获取所有文章用于RSS订阅，与blog_list排序逻辑一致"""
+    articles = []
+    categories = []
+    
+    if os.path.exists(BLOG_DIR):
+        for category_dir in os.listdir(BLOG_DIR):
+            category_path = os.path.join(BLOG_DIR, category_dir)
+            if os.path.isdir(category_path):
+                categories.append(category_dir)
+    
+    category_order = {}
+    category_json_path = os.path.join(BLOG_DIR, 'category.json')
+    if os.path.exists(category_json_path):
+        try:
+            with open(category_json_path, 'r', encoding='utf-8') as f:
+                category_order = json.load(f)
+        except Exception as e:
+            print(f"读取分类排序配置失败: {e}")
+    
+    def get_category_order(category_name):
+        return category_order.get(category_name, float('inf'))
+    
+    categories.sort(key=get_category_order)
+    
+    for cat in categories:
+        category_path = os.path.join(BLOG_DIR, cat)
+        if os.path.exists(category_path):
+            cat_order = {}
+            category_json_path = os.path.join(category_path, 'blog_category.json')
+            if os.path.exists(category_json_path):
+                try:
+                    with open(category_json_path, 'r', encoding='utf-8') as f:
+                        cat_order = json.load(f)
+                except Exception as e:
+                    print(f"读取分类文章排序配置失败 {cat}: {e}")
+            
+            for article_dir in os.listdir(category_path):
+                article_path = os.path.join(category_path, article_dir)
+                if os.path.isdir(article_path):
+                    config_path = os.path.join(article_path, 'config.json')
+                    if os.path.exists(config_path):
+                        try:
+                            with open(config_path, 'r', encoding='utf-8') as f:
+                                config = json.load(f)
+                            
+                            pub_date = None
+                            if 'pub_date' in config:
+                                try:
+                                    pub_date = datetime.datetime.fromisoformat(config['pub_date'])
+                                except:
+                                    pub_date = datetime.datetime.now()
+                            else:
+                                try:
+                                    stat_info = os.stat(article_path)
+                                    pub_date = datetime.datetime.fromtimestamp(stat_info.st_mtime)
+                                except:
+                                    pub_date = datetime.datetime.now()
+                            
+                            articles.append({
+                                'id': article_dir,
+                                'category': cat,
+                                'title': config.get('title', '无标题'),
+                                'small_title': config.get('small_title', '无简介'),
+                                'order': cat_order.get(article_dir, float('inf')),
+                                'category_order': get_category_order(cat),
+                                'pub_date': pub_date
+                            })
+                        except Exception as e:
+                            print(f"读取文章配置失败 {cat}/{article_dir}: {e}")
+    
+    def get_combined_order(article):
+        return (article.get('category_order', float('inf')), article.get('order', float('inf')))
+    
+    articles.sort(key=get_combined_order)
+    
+    for article in articles:
+        if article['pub_date']:
+            article['pub_date_str'] = article['pub_date'].strftime('%a, %d %b %Y %H:%M:%S +0800')
+        else:
+            article['pub_date_str'] = datetime.datetime.now().strftime('%a, %d %b %Y %H:%M:%S +0800')
+    
+    return articles
+
+def refresh_rss_cache():
+    """刷新RSS缓存"""
+    global rss_articles_cache
+    articles = get_all_articles_for_rss()
+    with rss_cache_lock:
+        rss_articles_cache = articles
+    threading.Timer(60, refresh_rss_cache).start()
+
+refresh_rss_cache()
 
 # 配置反向代理支持
 # 设置代理服务器的数量（根据实际反向代理层数调整）
@@ -239,9 +340,6 @@ def process_markdown_content(markdown_content):
     html_content = process_download_links(html_content)
     
     return html_content
-
-# 博客文章目录
-BLOG_DIR = os.path.join(os.path.dirname(__file__), 'blogs')
 
 @app.route('/')
 def index():
@@ -712,6 +810,26 @@ def resources_list():
         return {'error': f'读取目录失败: {str(e)}'}, 500
     
     return {'files': files}
+
+@app.route('/api/rss.xml')
+def rss_feed():
+    """RSS订阅源"""
+    settings = get_blog_settings()
+    with rss_cache_lock:
+        articles = rss_articles_cache.copy()
+    
+    blog_url = request.host_url.rstrip('/')
+    last_build_date = datetime.datetime.now().strftime('%a, %d %b %Y %H:%M:%S +0800')
+    
+    return Response(
+        render_template('rss.xml', 
+            blogname=settings['blogname'],
+            blog_url=blog_url,
+            last_build_date=last_build_date,
+            articles=articles
+        ),
+        mimetype='application/rss+xml'
+    )
 
 @app.route('/editor')
 def editor():

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+<channel>
+    <title>{{ blogname }} - {{ blog_url }}</title>
+    <link>{{ blog_url }}</link>
+    <description>【订阅RSS】{{ blog_url }}/api/rss.xml</description>
+    <language>zh-cn</language>
+    <lastBuildDate>{{ last_build_date }}</lastBuildDate>
+    <managingEditor>{{ blogname }} - {{ blog_url }}</managingEditor>
+    <webMaster>{{ blogname }}</webMaster>
+    <ttl>1</ttl>
+    <image>
+        <url>{{ blog_url }}/css/all/favicon.ico</url>
+        <title>{{ blogname }}</title>
+        <link>{{ blog_url }}</link>
+    </image>
+    <atom:link href="{{ blog_url }}/api/rss.xml" rel="self" type="application/rss+xml"/>
+    {% for article in articles %}
+    <item>
+        <title>{{ article.title }}</title>
+        <link>{{ blog_url }}/read/{{ article.category }}/{{ article.id }}</link>
+        <description>{{ article.small_title }}</description>
+        <guid>{{ blog_url }}/read/{{ article.category }}/{{ article.id }}</guid>
+        <pubDate>{{ article.pub_date }}</pubDate>
+    </item>
+    {% endfor %}
+</channel>
+</rss>
