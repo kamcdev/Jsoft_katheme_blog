@@ -10,6 +10,22 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 app = Flask(__name__)
 
+# 获取博客设置的函数
+def get_blog_settings():
+    """读取博客配置文件，返回博客设置"""
+    settings_path = os.path.join(os.path.dirname(__file__), 'blogsettings.json')
+    default_settings = {'blogname': "katheme开源版"}
+    
+    if os.path.exists(settings_path):
+        try:
+            with open(settings_path, 'r', encoding='utf-8') as f:
+                settings = json.load(f)
+            return {**default_settings, **settings}
+        except Exception as e:
+            print(f"读取博客设置失败: {e}")
+            return default_settings
+    return default_settings
+
 # 配置反向代理支持
 # 设置代理服务器的数量（根据实际反向代理层数调整）
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
@@ -230,7 +246,8 @@ BLOG_DIR = os.path.join(os.path.dirname(__file__), 'blogs')
 @app.route('/')
 def index():
     """首页 - 显示文章列表"""
-    return render_template('index.html')
+    settings = get_blog_settings()
+    return render_template('index.html', blogname=settings['blogname'])
 
 @app.route('/friendly_links.json')
 def friendly_links():
@@ -383,7 +400,8 @@ def blog_list(category=None):
 @app.route('/read/<category>/<article_id>')
 def read_article(category, article_id):
     """文章阅读页面"""
-    return render_template('read.html')
+    settings = get_blog_settings()
+    return render_template('read.html', blogname=settings['blogname'])
 
 @app.route('/read/<category>/<article_id>/content')
 def get_article_content(category, article_id):
@@ -698,7 +716,8 @@ def resources_list():
 @app.route('/editor')
 def editor():
     """Markdown编辑器页面"""
-    return render_template('editor.html')
+    settings = get_blog_settings()
+    return render_template('editor.html', blogname=settings['blogname'])
 
 @app.route('/api/preview', methods=['POST'])
 def preview_markdown():
