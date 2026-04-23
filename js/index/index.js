@@ -2,6 +2,122 @@
 let currentCategory = null;
 let categories = [];
 
+// 格式化日期显示
+function formatDate(dateStr) {
+    if (!dateStr) return '';
+    return dateStr;
+}
+
+// 开场动画控制
+function initWelcomeAnimation() {
+    const welcomeScreen = document.getElementById('welcome-screen');
+    const mainContent = document.getElementById('main-content');
+    
+    // 如果开场页面不存在，直接显示主内容
+    if (!welcomeScreen) {
+        mainContent.style.display = 'flex';
+        mainContent.classList.add('fade-in');
+        
+        // 显示文章内容容器和友链容器
+        const blogListContainer = document.querySelector('.center-section:first-of-type');
+        const friendlyLinksContainer = document.querySelector('.center-section:last-of-type');
+        
+        blogListContainer.classList.add('fade-in');
+        friendlyLinksContainer.classList.add('fade-in');
+        
+        // 文章项依次从下往上飞入
+        setTimeout(() => {
+            const blogItems = document.querySelectorAll('.blog-item');
+            blogItems.forEach((item, index) => {
+                setTimeout(() => {
+                    item.classList.add('fly-in');
+                }, index * 100); // 每个文章项间隔0.1秒
+            });
+        }, 500); // 容器渐显后0.5秒开始文章项飞入
+        
+        // 友链依次在0.3s内渐显
+        setTimeout(() => {
+            const friendlyLinks = document.querySelectorAll('.friendly-link-item');
+            friendlyLinks.forEach((link, index) => {
+                setTimeout(() => {
+                    link.classList.add('fade-in');
+                }, index * 100); // 每个友链间隔0.1秒
+            });
+        }, 300); // 容器渐显后0.3秒开始友链渐显
+        
+        return;
+    }
+    
+    const welcomeContent = welcomeScreen.querySelector('.welcome-content');
+    const enterBtn = document.getElementById('enter-btn');
+    
+    // 点击进入按钮
+    enterBtn.addEventListener('click', function() {
+        // 禁用按钮防止重复点击
+        enterBtn.disabled = true;
+        
+        // 按顺序渐隐元素：按钮→图标→主标题→副标题
+        const elements = [
+            enterBtn,
+            welcomeContent.querySelector('.welcome-icon'),
+            welcomeContent.querySelector('.welcome-title'),
+            welcomeContent.querySelector('.welcome-subtitle')
+        ];
+        
+        // 依次渐隐每个元素
+        elements.forEach((element, index) => {
+            setTimeout(() => {
+                element.classList.add('fade-out');
+            }, index * 150); // 每个元素间隔0.15秒（加快）
+        });
+        
+        // 所有元素渐隐完成后，隐藏开场页面
+        setTimeout(() => {
+            // 隐藏开场页面
+            welcomeScreen.classList.add('fade-out');
+            
+            // 开场页面完全隐藏后，开始显示主内容
+            setTimeout(() => {
+                // 显示主内容容器
+                mainContent.style.display = 'flex';
+                mainContent.classList.add('fade-in');
+                
+                // 文章内容容器和友链容器同时在0.5s内渐显
+                const blogListContainer = document.querySelector('.center-section:first-of-type');
+                const friendlyLinksContainer = document.querySelector('.center-section:last-of-type');
+                
+                blogListContainer.classList.add('fade-in');
+                friendlyLinksContainer.classList.add('fade-in');
+                
+                // 随后文章项依次从下往上飞入
+                setTimeout(() => {
+                    const blogItems = document.querySelectorAll('.blog-item');
+                    blogItems.forEach((item, index) => {
+                        setTimeout(() => {
+                            item.classList.add('fly-in');
+                        }, index * 100); // 每个文章项间隔0.1秒
+                    });
+                }, 500); // 容器渐显后0.5秒开始文章项飞入
+                
+                // 友链依次在0.3s内渐显
+                setTimeout(() => {
+                    const friendlyLinks = document.querySelectorAll('.friendly-link-item');
+                    friendlyLinks.forEach((link, index) => {
+                        setTimeout(() => {
+                            link.classList.add('fade-in');
+                        }, index * 100); // 每个友链间隔0.1秒
+                    });
+                }, 300); // 容器渐显后0.3秒开始友链渐显
+                
+                // 完全移除开场页面
+                setTimeout(() => {
+                    welcomeScreen.remove();
+                }, 1000); // 延长等待时间确保动画完成
+            }, 500); // 开场页面隐藏后等待0.5秒开始主内容动画
+        }, elements.length * 150 + 300); // 等待所有元素渐隐完成（加快）
+    });
+}
+
 // 初始化分类标签页
 function initCategoryTabs() {
     const tabsContainer = document.getElementById('categoryTabsContainer');
@@ -42,7 +158,7 @@ function initCategoryTabs() {
 }
 
 // 切换分类
-function switchCategory(category) {
+async function switchCategory(category) {
     if (currentCategory === category) return;
     
     // 更新当前分类
@@ -57,7 +173,21 @@ function switchCategory(category) {
     });
     
     // 加载新分类的文章
-    loadBlogList(category);
+    await loadBlogList(category);
+    
+    // 为新加载的文章项应用飞入动画
+    setTimeout(() => {
+        const blogItems = document.querySelectorAll('.blog-item');
+        blogItems.forEach((item, index) => {
+            // 移除之前的动画类（如果有）
+            item.classList.remove('fly-in');
+            
+            // 重新应用动画
+            setTimeout(() => {
+                item.classList.add('fly-in');
+            }, index * 100); // 每个文章项间隔0.1秒
+        });
+    }, 100); // 短暂延迟确保DOM更新完成
 }
 
 // 滚动分类标签页
@@ -137,6 +267,7 @@ async function loadBlogList(category = null) {
                         <div class="blog-info">
                             <h3 class="blog-title">${article.title}</h3>
                             <p class="blog-small-title">${article.small_title}</p>
+                            ${article.pub_date ? `<p class="blog-date">${formatDate(article.pub_date)}</p>` : ''}
                         </div>
                     </div>
                 `;
@@ -214,6 +345,10 @@ async function loadFriendlyLinks() {
 
 // 页面加载完成后执行
 document.addEventListener('DOMContentLoaded', () => {
+    // 初始化开场动画
+    initWelcomeAnimation();
+    
+    // 加载分类和友情链接，但保持主内容隐藏
     loadCategories();
     loadFriendlyLinks();
 });

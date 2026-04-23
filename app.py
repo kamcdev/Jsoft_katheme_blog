@@ -1,131 +1,20 @@
-from flask import Flask, render_template, send_from_directory, request, Response
+from flask import Flask, render_template, send_from_directory, request, jsonify, make_response, Response
 import os
 import json
 import datetime
 import markdown
+import sqlite3
+import hashlib
+import secrets
+import requests
+import threading
+import uuid
 from markdown.extensions.codehilite import CodeHiliteExtension
 from markdown.extensions.fenced_code import FencedCodeExtension
 import mdx_math
 from werkzeug.middleware.proxy_fix import ProxyFix
-import threading
 
 app = Flask(__name__)
-
-BLOG_DIR = os.path.join(os.path.dirname(__file__), 'blogs')
-
-# 获取博客设置的函数
-def get_blog_settings():
-    """读取博客配置文件，返回博客设置"""
-    settings_path = os.path.join(os.path.dirname(__file__), 'blogsettings.json')
-    default_settings = {'blogname': "katheme开源版"}
-    
-    if os.path.exists(settings_path):
-        try:
-            with open(settings_path, 'r', encoding='utf-8') as f:
-                settings = json.load(f)
-            return {**default_settings, **settings}
-        except Exception as e:
-            print(f"读取博客设置失败: {e}")
-            return default_settings
-    return default_settings
-
-# RSS 缓存数据
-rss_articles_cache = []
-rss_cache_lock = threading.Lock()
-
-def get_all_articles_for_rss():
-    """获取所有文章用于RSS订阅，与blog_list排序逻辑一致"""
-    articles = []
-    categories = []
-    
-    if os.path.exists(BLOG_DIR):
-        for category_dir in os.listdir(BLOG_DIR):
-            category_path = os.path.join(BLOG_DIR, category_dir)
-            if os.path.isdir(category_path):
-                categories.append(category_dir)
-    
-    category_order = {}
-    category_json_path = os.path.join(BLOG_DIR, 'category.json')
-    if os.path.exists(category_json_path):
-        try:
-            with open(category_json_path, 'r', encoding='utf-8') as f:
-                category_order = json.load(f)
-        except Exception as e:
-            print(f"读取分类排序配置失败: {e}")
-    
-    def get_category_order(category_name):
-        return category_order.get(category_name, float('inf'))
-    
-    categories.sort(key=get_category_order)
-    
-    for cat in categories:
-        category_path = os.path.join(BLOG_DIR, cat)
-        if os.path.exists(category_path):
-            cat_order = {}
-            category_json_path = os.path.join(category_path, 'blog_category.json')
-            if os.path.exists(category_json_path):
-                try:
-                    with open(category_json_path, 'r', encoding='utf-8') as f:
-                        cat_order = json.load(f)
-                except Exception as e:
-                    print(f"读取分类文章排序配置失败 {cat}: {e}")
-            
-            for article_dir in os.listdir(category_path):
-                article_path = os.path.join(category_path, article_dir)
-                if os.path.isdir(article_path):
-                    config_path = os.path.join(article_path, 'config.json')
-                    if os.path.exists(config_path):
-                        try:
-                            with open(config_path, 'r', encoding='utf-8') as f:
-                                config = json.load(f)
-                            
-                            pub_date = None
-                            if 'pub_date' in config:
-                                try:
-                                    pub_date = datetime.datetime.fromisoformat(config['pub_date'])
-                                except:
-                                    pub_date = datetime.datetime.now()
-                            else:
-                                try:
-                                    stat_info = os.stat(article_path)
-                                    pub_date = datetime.datetime.fromtimestamp(stat_info.st_mtime)
-                                except:
-                                    pub_date = datetime.datetime.now()
-                            
-                            articles.append({
-                                'id': article_dir,
-                                'category': cat,
-                                'title': config.get('title', '无标题'),
-                                'small_title': config.get('small_title', '无简介'),
-                                'order': cat_order.get(article_dir, float('inf')),
-                                'category_order': get_category_order(cat),
-                                'pub_date': pub_date
-                            })
-                        except Exception as e:
-                            print(f"读取文章配置失败 {cat}/{article_dir}: {e}")
-    
-    def get_combined_order(article):
-        return (article.get('category_order', float('inf')), article.get('order', float('inf')))
-    
-    articles.sort(key=get_combined_order)
-    
-    for article in articles:
-        if article['pub_date']:
-            article['pub_date_str'] = article['pub_date'].strftime('%a, %d %b %Y %H:%M:%S +0800')
-        else:
-            article['pub_date_str'] = datetime.datetime.now().strftime('%a, %d %b %Y %H:%M:%S +0800')
-    
-    return articles
-
-def refresh_rss_cache():
-    """刷新RSS缓存"""
-    global rss_articles_cache
-    articles = get_all_articles_for_rss()
-    with rss_cache_lock:
-        rss_articles_cache = articles
-    threading.Timer(60, refresh_rss_cache).start()
-
-refresh_rss_cache()
 
 # 配置反向代理支持
 # 设置代理服务器的数量（根据实际反向代理层数调整）
@@ -341,11 +230,192 @@ def process_markdown_content(markdown_content):
     
     return html_content
 
+# 获取博客设置的函数
+def get_blog_settings():
+    """读取博客配置文件，返回博客设置"""
+    settings_path = os.path.join(os.path.dirname(__file__), 'blogsettings.json')
+    default_settings = {'blogname': "manyJ'sBlog"}
+    
+    if os.path.exists(settings_path):
+        try:
+            with open(settings_path, 'r', encoding='utf-8') as f:
+                settings = json.load(f)
+            return {**default_settings, **settings}
+        except Exception as e:
+            print(f"读取博客设置失败: {e}")
+            return default_settings
+    return default_settings
+
+# 博客文章目录
+BLOG_DIR = os.path.join(os.path.dirname(__file__), 'blogs')
+
+# RSS 缓存数据
+rss_articles_cache = []
+rss_cache_lock = threading.Lock()
+rss_timer = None
+
+def stop_rss_cache():
+    """停止RSS缓存刷新线程"""
+    global rss_timer
+    if rss_timer:
+        rss_timer.cancel()
+
+def remove_color_controls(text):
+    """去除颜色控制符"""
+    import re
+    # 去除 %颜色代码% 和 °颜色代码° 格式的控制符
+    # 处理 %颜色代码% 格式
+    text = re.sub(r'%[^%\n]+%', '', text)
+    # 处理 °颜色代码° 格式
+    text = re.sub(r'°[^°\n]+°', '', text)
+    return text
+
+def get_all_articles_for_rss():
+    """获取所有文章用于RSS订阅，与blog_list排序逻辑一致"""
+    articles = []
+    categories = []
+    
+    if os.path.exists(BLOG_DIR):
+        for category_dir in os.listdir(BLOG_DIR):
+            category_path = os.path.join(BLOG_DIR, category_dir)
+            if os.path.isdir(category_path):
+                categories.append(category_dir)
+    
+    category_order = {}
+    category_json_path = os.path.join(BLOG_DIR, 'category.json')
+    if os.path.exists(category_json_path):
+        try:
+            with open(category_json_path, 'r', encoding='utf-8') as f:
+                category_order = json.load(f)
+        except Exception as e:
+            print(f"读取分类排序配置失败: {e}")
+    
+    def get_category_order(category_name):
+        return category_order.get(category_name, float('inf'))
+    
+    categories.sort(key=get_category_order)
+    
+    for cat in categories:
+        category_path = os.path.join(BLOG_DIR, cat)
+        if os.path.exists(category_path):
+            cat_order = {}
+            category_json_path = os.path.join(category_path, 'blog_category.json')
+            if os.path.exists(category_json_path):
+                try:
+                    with open(category_json_path, 'r', encoding='utf-8') as f:
+                        cat_order = json.load(f)
+                except Exception as e:
+                    print(f"读取分类文章排序配置失败 {cat}: {e}")
+            
+            for article_dir in os.listdir(category_path):
+                article_path = os.path.join(category_path, article_dir)
+                if os.path.isdir(article_path):
+                    config_path = os.path.join(article_path, 'config.json')
+                    if os.path.exists(config_path):
+                        try:
+                            with open(config_path, 'r', encoding='utf-8') as f:
+                                config = json.load(f)
+                            
+                            # 读取文章完整内容
+                            blog_md_path = os.path.join(article_path, 'blog.md')
+                            content = ''
+                            if os.path.exists(blog_md_path):
+                                try:
+                                    with open(blog_md_path, 'r', encoding='utf-8') as f:
+                                        content = f.read()
+                                    # 去除颜色控制符
+                                    content = remove_color_controls(content)
+                                except Exception as e:
+                                    print(f"读取文章内容失败 {cat}/{article_dir}: {e}")
+                            
+                            pub_date = None
+                            if 'pub_date' in config:
+                                try:
+                                    pub_date = datetime.datetime.fromisoformat(config['pub_date'])
+                                except:
+                                    pub_date = datetime.datetime.now()
+                            else:
+                                # 使用blog.md文件的修改日期
+                                try:
+                                    if os.path.exists(blog_md_path):
+                                        stat_info = os.stat(blog_md_path)
+                                        pub_date = datetime.datetime.fromtimestamp(stat_info.st_mtime)
+                                    else:
+                                        stat_info = os.stat(article_path)
+                                        pub_date = datetime.datetime.fromtimestamp(stat_info.st_mtime)
+                                except:
+                                    pub_date = datetime.datetime.now()
+                            
+                            articles.append({
+                                'id': article_dir,
+                                'category': cat,
+                                'title': config.get('title', '无标题'),
+                                'description': content,  # 使用完整内容作为description
+                                'order': cat_order.get(article_dir, float('inf')),
+                                'category_order': get_category_order(cat),
+                                'pub_date': pub_date.strftime('%Y-%m-%d') if pub_date else '',
+                                'pub_date_full': pub_date
+                            })
+                        except Exception as e:
+                            print(f"读取文章配置失败 {cat}/{article_dir}: {e}")
+    
+    # RSS订阅显示所有文章，按修改日期排序（最新的在前）
+    def get_pub_date_order(article):
+        pub_date = article.get('pub_date')
+        if not pub_date:
+            return datetime.datetime.min
+        if isinstance(pub_date, str):
+            # 字符串格式的日期，直接返回字符串用于排序
+            return pub_date
+        return pub_date
+    
+    articles.sort(key=get_pub_date_order, reverse=True)
+    
+    for article in articles:
+        # 优先使用pub_date_full（完整的datetime对象）
+        pub_date_full = article.get('pub_date_full')
+        if pub_date_full:
+            article['pub_date_str'] = pub_date_full.strftime('%a, %d %b %Y %H:%M:%S +0800')
+        elif article['pub_date']:
+            # 兼容：pub_date可能是字符串或datetime对象
+            if isinstance(article['pub_date'], str):
+                # 字符串格式，转换为datetime再生成RFC 822格式
+                try:
+                    dt = datetime.datetime.strptime(article['pub_date'], '%Y-%m-%d')
+                    article['pub_date_str'] = dt.strftime('%a, %d %b %Y %H:%M:%S +0800')
+                except:
+                    article['pub_date_str'] = article['pub_date']
+            else:
+                article['pub_date_str'] = article['pub_date'].strftime('%a, %d %b %Y %H:%M:%S +0800')
+        else:
+            article['pub_date_str'] = datetime.datetime.now().strftime('%a, %d %b %Y %H:%M:%S +0800')
+    
+    return articles
+
+def refresh_rss_cache():
+    """刷新RSS缓存"""
+    global rss_articles_cache, rss_timer
+    articles = get_all_articles_for_rss()
+    with rss_cache_lock:
+        rss_articles_cache = articles
+    rss_timer = threading.Timer(60, refresh_rss_cache)
+    rss_timer.daemon = True
+    rss_timer.start()
+
+# 只在主进程中启动RSS缓存刷新，避免重载时重复启动
+# 通过检查环境变量来判断是否为主进程
+if os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
+    refresh_rss_cache()
+
+def shutdown_rss_cache():
+    """Flask应用关闭时停止RSS缓存刷新"""
+    stop_rss_cache()
+
 @app.route('/')
 def index():
-    """首页 - 显示文章列表"""
+    """首页 - 显示文章列表，这个skip_welcome是控制开场动画是否显示的，改成False可以显示开场动画"""
     settings = get_blog_settings()
-    return render_template('index.html', blogname=settings['blogname'])
+    return render_template('index.html', skip_welcome=True, blogname=settings['blogname'])
 
 @app.route('/friendly_links.json')
 def friendly_links():
@@ -423,6 +493,26 @@ def blog_list(category=None):
                                 icon_path = os.path.join(article_path, 'icon.png')
                                 has_icon = os.path.exists(icon_path)
                                 
+                                # 获取文章修改日期（使用blog.md文件的修改日期）
+                                pub_date = None
+                                if 'pub_date' in config:
+                                    try:
+                                        pub_date = datetime.datetime.fromisoformat(config['pub_date'])
+                                    except:
+                                        pub_date = datetime.datetime.now()
+                                else:
+                                    # 使用blog.md文件的修改日期
+                                    blog_md_path = os.path.join(article_path, 'blog.md')
+                                    try:
+                                        if os.path.exists(blog_md_path):
+                                            stat_info = os.stat(blog_md_path)
+                                            pub_date = datetime.datetime.fromtimestamp(stat_info.st_mtime)
+                                        else:
+                                            stat_info = os.stat(article_path)
+                                            pub_date = datetime.datetime.fromtimestamp(stat_info.st_mtime)
+                                    except:
+                                        pub_date = datetime.datetime.now()
+                                
                                 articles.append({
                                     'id': article_dir,
                                     'category': cat,
@@ -430,16 +520,21 @@ def blog_list(category=None):
                                     'small_title': config.get('small_title', '无简介'),
                                     'has_icon': has_icon,
                                     'order': cat_order.get(article_dir, float('inf')),
-                                    'category_order': get_category_order(cat)
+                                    'category_order': get_category_order(cat),
+                                    'pub_date': pub_date.strftime('%Y-%m-%d') if pub_date else '',
+                                    'pub_date_full': pub_date
                                 })
                             except Exception as e:
                                 print(f"读取文章配置失败 {cat}/{article_dir}: {e}")
         
-        # 按照分类顺序和文章顺序排序
-        def get_combined_order(article):
-            return (article.get('category_order', float('inf')), article.get('order', float('inf')))
+        # "全部"分类按修改日期排序（最新的在前）
+        def get_pub_date_order(article):
+            pub_date = article.get('pub_date')
+            if not pub_date:
+                return ''
+            return pub_date
         
-        articles.sort(key=get_combined_order)
+        articles.sort(key=get_pub_date_order, reverse=True)
         
         # 如果没有指定分类，设置当前分类为"全部"
         if not category:
@@ -472,13 +567,35 @@ def blog_list(category=None):
                             icon_path = os.path.join(article_path, 'icon.png')
                             has_icon = os.path.exists(icon_path)
                             
+                            # 获取文章修改日期
+                            pub_date = None
+                            if 'pub_date' in config:
+                                try:
+                                    pub_date = datetime.datetime.fromisoformat(config['pub_date'])
+                                except:
+                                    pub_date = datetime.datetime.now()
+                            else:
+                                # 使用blog.md文件的修改日期
+                                blog_md_path = os.path.join(article_path, 'blog.md')
+                                try:
+                                    if os.path.exists(blog_md_path):
+                                        stat_info = os.stat(blog_md_path)
+                                        pub_date = datetime.datetime.fromtimestamp(stat_info.st_mtime)
+                                    else:
+                                        stat_info = os.stat(article_path)
+                                        pub_date = datetime.datetime.fromtimestamp(stat_info.st_mtime)
+                                except:
+                                    pub_date = datetime.datetime.now()
+                            
                             articles.append({
                                 'id': article_dir,
                                 'category': category,
                                 'title': config.get('title', '无标题'),
                                 'small_title': config.get('small_title', '无简介'),
                                 'has_icon': has_icon,
-                                'order': cat_order.get(article_dir, float('inf'))
+                                'order': cat_order.get(article_dir, float('inf')),
+                                'pub_date': pub_date.strftime('%Y-%m-%d') if pub_date else '',
+                                'pub_date_full': pub_date
                             })
                         except Exception as e:
                             print(f"读取文章配置失败 {category}/{article_dir}: {e}")
@@ -495,11 +612,7 @@ def blog_list(category=None):
         'articles': articles
     }
 
-@app.route('/read/<category>/<article_id>')
-def read_article(category, article_id):
-    """文章阅读页面"""
-    settings = get_blog_settings()
-    return render_template('read.html', blogname=settings['blogname'])
+
 
 @app.route('/read/<category>/<article_id>/content')
 def get_article_content(category, article_id):
@@ -730,7 +843,8 @@ def get_article_content(category, article_id):
         'title': config.get('title', '无标题'),
         'small_title': config.get('small_title', '无简介'),
         'content': content,
-        'update_date': update_date
+        'update_date': update_date,
+        'ai': config.get('ai', '')
     }
 
 @app.route('/read/<category>/<article_id>/icon')
@@ -742,21 +856,35 @@ def get_article_icon(category, article_id):
     if os.path.exists(icon_path):
         return send_from_directory(article_path, 'icon.png')
     else:
-        # 返回默认图片或404
         return send_from_directory('css/all', 'favicon.ico')
 
 # 静态文件路由
 @app.route('/css/<path:filename>')
 def css_files(filename):
-    return send_from_directory('css', filename)
+    response = send_from_directory('css', filename)
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
 
 @app.route('/css/all/<path:filename>')
 def css_all_files(filename):
-    return send_from_directory('css/all', filename)
+    response = send_from_directory('css/all', filename)
+    if filename == 'bg.png':
+        response.headers['Cache-Control'] = 'public, max-age=31536000'
+    else:
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+    return response
 
 @app.route('/js/<path:filename>')
 def js_files(filename):
-    return send_from_directory('js', filename)
+    response = send_from_directory('js', filename)
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
 
 @app.route('/debug/ip')
 def debug_ip():
@@ -854,6 +982,224 @@ def preview_markdown():
         
     except Exception as e:
         return {'error': f'处理Markdown失败: {str(e)}'}, 500
+
+# 数据库初始化
+def init_db():
+    """初始化SQLite数据库"""
+    db_path = os.path.join(os.path.dirname(__file__), 'instance', 'comment.db')
+    os.makedirs(os.path.dirname(db_path), exist_ok=True)
+    
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    
+    # 创建评论表
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS comments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            article_id TEXT NOT NULL,
+            user_id TEXT NOT NULL,
+            username TEXT NOT NULL,
+            content TEXT NOT NULL,
+            avatar_url TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
+    # 添加 avatar_url 列（如果不存在）
+    try:
+        cursor.execute('ALTER TABLE comments ADD COLUMN avatar_url TEXT')
+    except sqlite3.OperationalError:
+        pass
+    
+    # 创建用户会话表
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS user_sessions (
+            session_id TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL,
+            username TEXT NOT NULL,
+            access_token TEXT NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            expires_at DATETIME NOT NULL
+        )
+    ''')
+    
+    conn.commit()
+    conn.close()
+
+def mask_email(email):
+    """邮箱打码函数，保留前两位和@域名部分"""
+    if '@' not in email:
+        return email
+    local_part, domain = email.split('@', 1)
+    if len(local_part) <= 2:
+        masked_local = local_part
+    else:
+        masked_local = local_part[:2] + '*' * (len(local_part) - 2)
+    return f"{masked_local}@{domain}"
+
+# 提交评论API
+@app.route('/api/comment', methods=['POST'])
+def api_comment():
+    """提交评论接口 - 纯匿名评论"""
+    try:
+        def is_single_punctuation(text):
+            if not text or len(text) != 1:
+                return False
+            punctuation_chars = (
+                '.,!?;:\'\"-()[]{}<>@#$%^&*~`|\\/+=_'
+                '。，！？；：""''《》【】（）…—～·、'
+                '·※◎■□★☆●○◆◇△▽▼↑←→↘↙♠♣♥♦＃￥％＆＊＋－＝＠＾＿｀｜＼／'
+                '〜～￣＿﹏﹋﹌﹍﹎﹏'
+                ' \t\r\n'
+            )
+            return text in punctuation_chars
+
+        if request.is_json:
+            data = request.get_json()
+            article_id = data.get('article_id')
+            content = data.get('content')
+            email = data.get('email')
+            avatar_url = data.get('avatar_url')
+        else:
+            article_id = request.form.get('article_id')
+            content = request.form.get('content')
+            email = request.form.get('email')
+            avatar_url = request.form.get('avatar_url')
+        
+        if not all([article_id, content, email]):
+            return jsonify({'success': False, 'message': '文章ID、评论内容和邮箱不能为空'}), 400
+        
+        if is_single_punctuation(content.strip()):
+            return jsonify({'success': False, 'message': '不可发送单个标点符号'}), 400
+        
+        content = content.replace('\r\n', '').replace('\n', '').replace('\r', '')
+        
+        if len(content) < 1:
+            return jsonify({'success': False, 'message': '评论内容不能为空'}), 400
+        
+        if len(content) > 1000:
+            return jsonify({'success': False, 'message': '评论内容过长（最多1000个字符）'}), 400
+        
+        anonymous_user_id = f"anonymous#{str(uuid.uuid4())}"
+        masked_username = mask_email(email)
+        
+        db_path = os.path.join(os.path.dirname(__file__), 'instance', 'comment.db')
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            INSERT INTO comments (article_id, user_id, username, content, avatar_url)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (article_id, anonymous_user_id, masked_username, content, avatar_url))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'message': '评论发布成功',
+            'is_anonymous': True,
+            'comment_id': cursor.lastrowid
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'评论提交失败: {str(e)}'}), 500
+
+# 获取评论API
+@app.route('/api/comments/<path:article_id>', methods=['GET'])
+def api_get_comments(article_id):
+    """获取文章评论"""
+    try:
+        db_path = os.path.join(os.path.dirname(__file__), 'instance', 'comment.db')
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT id, user_id, username, content, avatar_url, created_at
+            FROM comments
+            WHERE article_id = ?
+            ORDER BY created_at DESC
+        ''', (article_id,))
+        
+        comments = []
+        for row in cursor.fetchall():
+            created_at = row[5]
+            
+            if isinstance(created_at, str) and ' ' in created_at:
+                created_at = created_at.replace(' ', 'T') + 'Z'
+            
+            avatar_url = row[4] if row[4] else '/css/all/default-avatar.svg'
+            
+            comments.append({
+                'id': row[0],
+                'user_id': row[1],
+                'username': row[2],
+                'content': row[3],
+                'created_at': created_at,
+                'avatar_url': avatar_url
+            })
+        
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'comments': comments
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'获取评论失败: {str(e)}'}), 500
+
+# 用户协议与隐私政策页面
+@app.route('/u')
+def user_agreement():
+    """用户协议与隐私政策页面"""
+    return render_template('u.html')
+
+# 修改文章阅读页面，添加评论数据
+@app.route('/read/<category>/<article_id>')
+def read_article(category, article_id):
+    """文章阅读页面"""
+    # 获取评论数据（不包含头像，头像通过前端异步加载）
+    comments = []
+    try:
+        db_path = os.path.join(os.path.dirname(__file__), 'instance', 'comment.db')
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT c.id, c.user_id, c.username, c.content, c.created_at
+            FROM comments c
+            WHERE c.article_id = ?
+            ORDER BY c.created_at DESC
+        ''', (f"{category}/{article_id}",))
+        
+        for row in cursor.fetchall():
+            # 格式化时间戳，确保前端能正确解析
+            created_at = row[4]
+            
+            # 如果是SQLite的datetime格式，转换为ISO格式
+            if isinstance(created_at, str) and ' ' in created_at:
+                # 将 "YYYY-MM-DD HH:MM:SS" 转换为 "YYYY-MM-DDTHH:MM:SSZ"
+                created_at = created_at.replace(' ', 'T') + 'Z'
+            
+            # 不在此处获取头像，避免阻塞页面加载
+            comments.append({
+                'id': row[0],
+                'user_id': row[1],
+                'username': row[2],
+                'content': row[3],
+                'created_at': created_at,
+                'avatar_url': '/css/all/default-avatar.svg'  # 使用默认头像
+            })
+        
+        conn.close()
+    except Exception as e:
+        print(f"获取评论失败: {e}")
+    
+    return render_template('read.html', article_id=f"{category}/{article_id}", comments=comments)
+
+# 初始化数据库
+init_db()
 
 if __name__ == '__main__':
     app.run(debug=True, port=26178)

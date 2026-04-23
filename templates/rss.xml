@@ -19,9 +19,9 @@
     <item>
         <title>{{ article.title }}</title>
         <link>{{ blog_url }}/read/{{ article.category }}/{{ article.id }}</link>
-        <description>{{ article.small_title }}</description>
+        <description><![CDATA[{{ article.description|safe }}]]></description>
         <guid>{{ blog_url }}/read/{{ article.category }}/{{ article.id }}</guid>
-        <pubDate>{{ article.pub_date }}</pubDate>
+        <pubDate>{{ article.pub_date_str }}</pubDate>
     </item>
     {% endfor %}
 </channel>

@@ -388,6 +388,84 @@ function initArticleInfo(data) {
     // 获取文章更新日期（从后端数据）
     document.getElementById('updateDate').textContent = data.update_date || '未知';
     
+    // 初始化AI总结区域
+    if (data.ai && data.ai.trim()) {
+        const aiSection = document.getElementById('aiSummarySection');
+        const aiContent = document.getElementById('aiSummaryContent');
+        const aiExpandBtn = document.getElementById('aiSummaryExpandBtn');
+        
+        if (aiSection && aiContent && aiExpandBtn) {
+            aiContent.innerHTML = data.ai;
+            aiSection.style.display = 'block';
+            
+            // 检查内容是否超过两行，决定是否显示展开按钮
+            setTimeout(() => {
+                const contentWrapper = aiSection.querySelector('.ai-summary-content-wrapper');
+                if (!contentWrapper) return;
+                
+                const contentHeight = aiContent.scrollHeight;
+                const lineHeight = parseInt(getComputedStyle(aiContent).lineHeight);
+                const maxHeight = lineHeight * 2;
+                const tolerance = 2;
+                
+                if (contentHeight > maxHeight + tolerance) {
+                    aiExpandBtn.style.display = 'flex';
+                    aiExpandBtn.querySelector('.expand-text').style.display = 'inline';
+                    aiExpandBtn.querySelector('.collapse-text').style.display = 'none';
+                    aiContent.style.maxHeight = maxHeight + 'px';
+                    aiContent.style.overflow = 'hidden';
+                }
+            }, 100);
+            
+            // 点击展开/收起按钮
+            aiExpandBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const expandText = aiExpandBtn.querySelector('.expand-text');
+                const collapseText = aiExpandBtn.querySelector('.collapse-text');
+                const isExpanded = aiContent.style.maxHeight === 'none';
+                
+                // 禁用按钮点击，防止重复操作
+                aiExpandBtn.style.pointerEvents = 'none';
+                
+                if (isExpanded) {
+                    // 收起内容 - 使用动画
+                    const lineHeight = parseInt(getComputedStyle(aiContent).lineHeight);
+                    const maxHeight = lineHeight * 2;
+                    
+                    // 先获取当前高度，然后设置动画到两行高度
+                    const currentHeight = aiContent.scrollHeight;
+                    aiContent.style.maxHeight = currentHeight + 'px';
+                    
+                    // 强制重排，确保动画开始
+                    aiContent.offsetHeight;
+                    
+                    // 设置动画到两行高度
+                    aiContent.style.maxHeight = maxHeight + 'px';
+                    expandText.style.display = 'inline';
+                    collapseText.style.display = 'none';
+                    
+                    // 动画结束后恢复按钮点击
+                    setTimeout(() => {
+                        aiExpandBtn.style.pointerEvents = 'auto';
+                    }, 300);
+                } else {
+                    // 展开内容 - 使用动画
+                    // 先获取完整高度，然后设置动画
+                    const fullHeight = aiContent.scrollHeight;
+                    aiContent.style.maxHeight = fullHeight + 'px';
+                    
+                    // 短暂延迟后设置为none，确保动画完成
+                    setTimeout(() => {
+                        aiContent.style.maxHeight = 'none';
+                        expandText.style.display = 'none';
+                        collapseText.style.display = 'inline';
+                        aiExpandBtn.style.pointerEvents = 'auto';
+                    }, 300);
+                }
+            });
+        }
+    }
+    
     // 开始阅读时长计时
     startReadingTimer();
     

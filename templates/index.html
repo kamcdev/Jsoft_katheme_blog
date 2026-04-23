@@ -11,7 +11,20 @@
     <link rel="shortcut icon" href="/css/all/favicon.ico" type="image/x-icon">
 </head>
 <body>
-    <div class="container">
+    <!-- 开场页面 -->
+    {% if not skip_welcome %}
+    <div id="welcome-screen" class="welcome-screen">
+        <div class="welcome-content">
+            <img src="/css/all/favicon.ico" alt="网站图标" class="welcome-icon">
+            <h1 class="welcome-title">欢迎来到J的个人博客</h1>
+            <img src="/css/all/small_title.png" alt="副标题" class="welcome-subtitle">
+            <button id="enter-btn" class="enter-btn">点我进入</button>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- 主内容容器 -->
+    <div id="main-content" class="container" {% if not skip_welcome %}style="display: none;"{% endif %}>
         <div class="center-section">
             <h1>文章列表</h1>
             <div class="category-tabs" id="categoryTabs">

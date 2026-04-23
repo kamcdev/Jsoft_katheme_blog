@@ -76,8 +76,48 @@
                     <span class="info-value">CC BY-NC-SA 4.0</span>
                 </div>
             </div>
+            
+            <!-- AI总结区域 -->
+            <div class="ai-summary-section" id="aiSummarySection" style="display: none;">
+                <div class="ai-summary-header">
+                    <h3 class="ai-summary-title">AI总结</h3>
+                </div>
+                <div class="ai-summary-content-wrapper">
+                    <div class="ai-summary-content" id="aiSummaryContent"></div>
+                    <div class="ai-summary-expand-btn" id="aiSummaryExpandBtn" style="display: none;">
+                        <span class="expand-text">展开</span>
+                        <span class="collapse-text" style="display: none;">收起</span>
+                    </div>
+                </div>
+            </div>
+            
             <div class="article-content" id="articleContent">
                 
+            </div>
+            
+            <!-- 评论区 -->
+            <div class="comment-section">
+                <h3 class="comment-title">评论区</h3>
+                
+                <!-- 评论输入区域 -->
+                <div id="comment-input-area" class="comment-input-area">
+                    <form id="comment-form" method="POST" action="/api/comment">
+                        <input type="hidden" name="article_id" id="article-id" value="{{ article_id }}">
+                        <div class="comment-input-row">
+                            <input type="email" class="comment-email" name="email" placeholder="请输入邮箱地址" required>
+                            <input type="url" class="comment-avatar-url" name="avatar_url" placeholder="头像URL（选填）">
+                        </div>
+                        <textarea class="comment-input" name="content" placeholder="请输入您的评论..." rows="4" required></textarea>
+                        <div class="comment-form-footer">
+                            <button type="submit" class="comment-submit-btn">发送评论</button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- 评论列表区域 -->
+                <div class="comment-list" id="comment-list">
+                    <!-- 评论将通过后端动态生成 -->
+                </div>
             </div>
         </div>
     </div>
@@ -90,5 +130,6 @@
     <script src="/js/read/read.js"></script>
     <script src="/js/security/external-link-warning.js"></script>
     <script src="/js/read/telemetry.js"></script>
+    <script src="/js/read/comment.js"></script>
 </body>
 </html>
