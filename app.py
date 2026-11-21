@@ -998,6 +998,7 @@ def load_blog_settings():
                 settings = json.load(f)
                 return {
                     'close_comment': settings.get('close_comment', False),
+                    'close_share': settings.get('close_share', False),
                     'blogname': settings.get('blogname', '请在blogsettings.json中设置博客名称'),
                     'blognamestart': settings.get('blognamestart', '请在blogsettings.json中设置博客名称'),
                     'headerlightcount': settings.get('headerlightcount', 1),
@@ -1007,6 +1008,7 @@ def load_blog_settings():
         print(f"读取博客配置失败: {e}")
     return {
         'close_comment': False,
+        'close_share': False,
         'blogname': '请在blogsettings.json中设置博客名称',
         'blognamestart': '请在blogsettings.json中设置博客名称',
         'headerlightcount': 1,
@@ -1016,6 +1018,7 @@ def load_blog_settings():
 # 全局变量：博客配置
 BLOG_SETTINGS = load_blog_settings()
 CLOSE_COMMENT = BLOG_SETTINGS['close_comment']
+CLOSE_SHARE = BLOG_SETTINGS['close_share']
 
 # 博客文章目录
 BLOG_DIR = os.path.join(os.path.dirname(__file__), 'blogs')
@@ -2249,6 +2252,10 @@ def _unquote_url_text(value):
 @app.route('/api/share/<category>/<article>')
 def api_share(category, article):
     """获取或创建文章的分享短 id（仅对真实存在的文章生成）"""
+    # 检查分享功能是否关闭
+    if CLOSE_SHARE:
+        return jsonify({'success': False, 'message': '分享功能已关闭'}), 404
+
     # 前端拿到的分类/文章名本身已是 URL 编码串，请求时又编码一次，
     # Flask 只解一层；验证目录前先反复解码还原成真实目录名。
     real_category = _unquote_url_text(category)
@@ -2543,6 +2550,7 @@ def read_article(category, article_id):
                           article_id=f"{category}/{article_id}", 
                           comments=comments, 
                           close_comment=CLOSE_COMMENT,
+                          close_share=CLOSE_SHARE,
                           blogname=settings['blogname'],
                           author_name=settings.get('author_name', '请在blogsettings.json中设置作者名称'))
 
@@ -2562,6 +2570,9 @@ def browsertest():
 @app.errorhandler(404)
 def handle_404(error):
     """三位字符的根路径视为分享短路由，查到记录则跳转到原文"""
+    # 分享功能关闭时不处理短路由，保持默认 404
+    if CLOSE_SHARE:
+        return error
     short_id = request.path.strip('/')
     if len(short_id) == 3:
         init_share_db()

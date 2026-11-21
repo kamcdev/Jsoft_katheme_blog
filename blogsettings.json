@@ -3,5 +3,6 @@
     "blognamestart": "请在blogsettings.json中设置博客名称",
     "headerlightcount": 2,
     "close_comment": false,
+    "close_share": false,
     "author_name": "请在blogsettings.json中设置作者名称"
 }
