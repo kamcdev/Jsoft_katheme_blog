@@ -1,4 +1,7 @@
 {
     "title":"测试",
-    "small_title":"测试嘻嘻嘻嘻嘻嘻嘻"
+    "small_title":"测试嘻嘻嘻嘻嘻嘻嘻",
+    "license": "-",
+    "copy": false,
+    "owner": ""
 }

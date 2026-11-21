@@ -112,6 +112,49 @@ class MarkdownEditor {
 
             const textToWeight = selectedText || '粗细文字';
             newText = `%c s:${weight}%${textToWeight}%NONE%`;
+        } else if (text === 'TIMELINE') {
+            // 时间轴控制符插入：只询问颜色与朝向，时间点使用占位内容
+            const colorInput = prompt('请输入时间轴颜色（颜色代码如 R、G、B 或 6 位十六进制，留空则使用白色）:', '');
+            if (colorInput === null) return;
+
+            const directionInput = prompt('请输入时间轴朝向（l 为左侧、r 为右侧，留空则使用右侧）:', '');
+            if (directionInput === null) return;
+
+            const color = colorInput.trim();
+            const direction = directionInput.trim();
+            if (direction && direction !== 'l' && direction !== 'r') {
+                alert('时间轴朝向只能为 l 或 r');
+                return;
+            }
+
+            let params = '';
+            if (color && direction) {
+                params = ` c:${color}|f:${direction}`;
+            } else if (color) {
+                params = ` c:${color}`;
+            } else if (direction) {
+                params = ` f:${direction}`;
+            }
+
+            const timelinePoints = selectedText || '(2024.1.3,1月3日,内容文本1)(2026.5.14,5月14日,内容文本2)';
+            newText = `%tl${params}%${timelinePoints}%NONE%`;
+        } else if (text === 'PIECHART') {
+            // 扇形统计图控制符插入：无参数，使用默认示例数据
+            const pieData = selectedText || '(R,分类一,40)(G,分类二,35)(B,分类三,25)';
+            newText = `%pc%${pieData}%NONE%`;
+        } else if (text === 'FUNCTIONCHART') {
+            // 函数图象控制符插入：交互询问主题，默认含二次函数(顶点(-3,-5))、穿过顶点的一次函数、对称轴竖直线
+            const themeInput = prompt('请输入函数图象颜色主题（l 为亮色、d 为暗色，留空则使用亮色）:', 'l');
+            if (themeInput === null) return;
+
+            const theme = themeInput.trim().toLowerCase();
+            if (theme && theme !== 'l' && theme !== 'd') {
+                alert('函数图象颜色主题只能为 l 或 d');
+                return;
+            }
+
+            const funcData = selectedText || '#(x+3)^2-5?R##2x+1?G##x=-3?B#';
+            newText = `%f${theme ? ` c:${theme}` : ''}%${funcData}%NONE%`;
         } else if (text.includes('URL')) {
             // 链接插入
             const url = prompt('请输入链接地址:', 'https://');

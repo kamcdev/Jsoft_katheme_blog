@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title id="pageTitle">文章标题</title>
     <link rel="stylesheet" href="/css/read/read.css">
+    <link rel="stylesheet" href="/css/all/function-chart.css">
     <link rel="icon" href="/css/all/favicon.ico" type="image/x-icon">
     <link rel="shortcut icon" href="/css/all/favicon.ico" type="image/x-icon">
     <script src="/js/all/polyfill.min.js"></script>
@@ -72,7 +73,11 @@
                 </div>
                 <div class="info-item">
                     <span class="info-label">许可协议</span>
-                    <span class="info-value">CC BY-NC-SA 4.0</span>
+                    <span class="info-value" id="license">CC BY-NC-SA 4.0</span>
+                </div>
+                <div class="info-item" id="repostInfo" style="display: none;">
+                    <span class="info-label">转载情况</span>
+                    <span class="info-value">转载</span>
                 </div>
             </div>
             
@@ -92,6 +97,16 @@
             
             <div class="article-content" id="articleContent">
                 
+            </div>
+
+            <!-- 分享区域 -->
+            <div class="share-section" id="shareSection" style="display: none;">
+                <div class="share-title">觉得这篇文章怎么样？</div>
+                <div class="share-result" id="shareResult" style="display: none;">
+                    <div class="share-success">生成简短id成功</div>
+                    <input type="text" class="share-link-input" id="shareLinkInput" readonly>
+                </div>
+                <button class="download-button share-action" id="shareButton" type="button">分享文章</button>
             </div>
             
             {% if not close_comment %}
@@ -158,6 +173,8 @@
         window.AUTHOR_NAME = {{ author_name | tojson }};
     </script>
     <script src="/js/read/read.js"></script>
+    <script src="/js/all/pie-chart.js"></script>
+    <script src="/js/all/function-chart.js"></script>
     <script src="/js/security/external-link-warning.js"></script>
     <script src="/js/read/telemetry.js"></script>
     {% if not close_comment %}

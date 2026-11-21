@@ -579,3 +579,13 @@ body::-webkit-scrollbar {
 .error {
     color: #ff6b6b;
 }
+
+/* 跳过欢迎页时：卡片直接显示，不播放入场动画 */
+.reveal-instant {
+    opacity: 1;
+    animation: none;
+}
+
+.blog-item.reveal-instant:not(:hover) {
+    transform: none;
+}

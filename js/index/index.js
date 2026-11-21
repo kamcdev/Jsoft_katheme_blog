@@ -1,6 +1,8 @@
 // 全局变量
 let currentCategory = null;
 let categories = [];
+// 跳过欢迎页后的首次加载：文章与友链卡片直接显示，不播放入场动画
+let skipCardAnimation = false;
 
 // 顶栏控制
 function initNavHeader() {
@@ -52,39 +54,22 @@ function initWelcomeAnimation() {
     
     // 如果开场页面不存在（通过/notitle路由访问），直接显示主内容
     if (!welcomeScreen) {
+        // 标记首次加载的卡片跳过入场动画；后续切换分类仍保留动画
+        skipCardAnimation = true;
+
         mainContent.style.display = 'flex';
         mainContent.classList.add('fade-in');
 
         // 直接显示顶栏（无动画）
         showNavHeaderImmediate();
 
-        // 显示文章内容容器和友链容器
+        // 显示文章内容容器和友链容器（容器淡入保留）
         const blogListContainer = document.querySelector('.center-section:first-of-type');
         const friendlyLinksContainer = document.querySelector('.center-section:last-of-type');
 
         blogListContainer.classList.add('fade-in');
         friendlyLinksContainer.classList.add('fade-in');
-        
-        // 文章项依次从下往上飞入
-        setTimeout(() => {
-            const blogItems = document.querySelectorAll('.blog-item');
-            blogItems.forEach((item, index) => {
-                setTimeout(() => {
-                    item.classList.add('fly-in');
-                }, index * 100); // 每个文章项间隔0.1秒
-            });
-        }, 500); // 容器渐显后0.5秒开始文章项飞入
-        
-        // 友链依次在0.3s内渐显
-        setTimeout(() => {
-            const friendlyLinks = document.querySelectorAll('.friendly-link-item');
-            friendlyLinks.forEach((link, index) => {
-                setTimeout(() => {
-                    link.classList.add('fade-in');
-                }, index * 100); // 每个友链间隔0.1秒
-            });
-        }, 300); // 容器渐显后0.3秒开始友链渐显
-        
+
         return;
     }
     
@@ -203,6 +188,9 @@ function initCategoryTabs() {
 // 切换分类
 async function switchCategory(category) {
     if (currentCategory === category) return;
+
+    // 切换分类属于后续加载，恢复卡片飞入动画
+    skipCardAnimation = false;
     
     // 更新当前分类
     currentCategory = category;
@@ -294,7 +282,7 @@ async function loadBlogList(category = null) {
         if (data.articles && data.articles.length > 0) {
             data.articles.forEach(article => {
                 const articleElement = document.createElement('div');
-                articleElement.className = 'blog-item';
+                articleElement.className = skipCardAnimation ? 'blog-item reveal-instant' : 'blog-item';
                 articleElement.onclick = () => {
                     window.location.href = `/read/${article.category}/${article.id}`;
                 };
@@ -370,7 +358,7 @@ async function loadFriendlyLinks() {
          // 添加友情链告
          links.forEach(link => {
              const linkItem = document.createElement('a');
-             linkItem.className = 'friendly-link-item';
+             linkItem.className = skipCardAnimation ? 'friendly-link-item reveal-instant' : 'friendly-link-item';
              linkItem.href = link.url;
              linkItem.textContent = link.name;
              linkItem.target = '_blank';

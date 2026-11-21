@@ -1,8 +1,14 @@
-from flask import Flask, render_template, send_from_directory, request, jsonify, make_response, Response, abort
+from flask import Flask, render_template, send_from_directory, request, jsonify, make_response, Response, abort, redirect
 import os
 import json
 import datetime
 import html
+import re
+import ast
+import math
+import random
+import string
+from decimal import Decimal, InvalidOperation
 import urllib.parse
 import markdown
 import sqlite3
@@ -42,23 +48,575 @@ def get_real_client_ip():
     # 最后使用远程地址
     return request.remote_addr
 
+# 统一颜色映射表：颜色缩写 -> 颜色值（所有解析器共用）
+# NONE 在文字控制符中表示“恢复默认”（inherit）；时间轴/扇形图/函数图象中单独解释为白色
+color_map = {
+    'NONE': 'inherit',  # 恢复默认颜色
+    'R': '#FF0000',     # 红色
+    'G': '#00FF00',     # 绿色
+    'B': '#0000FF',     # 蓝色
+    'Y': '#FFFF00',     # 黄色
+    'P': '#FFC0CB',     # 粉色
+    'U': '#800080',     # 紫色
+    'K': '#000000',     # 黑色
+    'W': '#FFFFFF',     # 白色
+    'O': '#FFA500',     # 橙色
+    'D': '#F8D14A'      # 金色
+}
+
+# 文章封面图支持的文件名（按优先级排序）
+ARTICLE_ICON_FILENAMES = ('icon.png', 'icon.jpg', 'icon.jpeg', 'icon.webp')
+
+
+def find_article_icon(article_path):
+    """返回文章目录下实际存在的封面图文件名，未找到返回 None"""
+    for filename in ARTICLE_ICON_FILENAMES:
+        if os.path.exists(os.path.join(article_path, filename)):
+            return filename
+    return None
+
+
+# 时间轴自定义格式：%tl [c:颜色|f:l/r]%(<时间>,<名字>,<内容>)...%NONE%
+_TIMELINE_ERROR_HTML = '<span style="color: #FF0000;">时间轴格式错误</span>'
+_TIMELINE_PLACEHOLDER_PREFIX = 'MDTIMELINEPLACEHOLDER'
+_TIMELINE_PLACEHOLDER_SUFFIX = 'X'
+
+
+def _parse_timeline_color(value):
+    """解析图表颜色，共用全局 color_map；NONE 在图表中表示默认白色"""
+    value = value.strip()
+    if value == 'NONE':
+        return '#FFFFFF'
+    if value in color_map:
+        return color_map[value]
+    candidate = value.lstrip('#')
+    if len(candidate) == 6 and all(c in '0123456789ABCDEFabcdef' for c in candidate):
+        return f'#{candidate.upper()}'
+    return None
+
+
+def _build_timeline_html(params_str, entries_str):
+    """根据参数和时间点文本生成时间轴 HTML；格式错误时返回红色错误文字"""
+    color = '#FFFFFF'
+    direction = 'r'
+    seen_params = set()
+
+    param_parts = [] if not params_str.strip() else params_str.strip().split('|')
+    for part in param_parts:
+        part = part.strip()
+        if ':' not in part:
+            return _TIMELINE_ERROR_HTML
+        key, value = (item.strip() for item in part.split(':', 1))
+        if key not in ('c', 'f') or key in seen_params:
+            return _TIMELINE_ERROR_HTML
+        seen_params.add(key)
+        if key == 'c':
+            parsed_color = _parse_timeline_color(value)
+            if parsed_color is None:
+                return _TIMELINE_ERROR_HTML
+            color = parsed_color
+        elif value not in ('l', 'r'):
+            return _TIMELINE_ERROR_HTML
+        else:
+            direction = value
+
+    # 时间点之间只允许空白；字段本身允许包含逗号但不允许括号
+    entry_pattern = re.compile(r'\(\s*([^()]*?)\s*,\s*([^()]*?)\s*,\s*([^()]*?)\s*\)')
+    entries = []
+    last_end = 0
+    for match in entry_pattern.finditer(entries_str):
+        if entries_str[last_end:match.start()].strip():
+            return _TIMELINE_ERROR_HTML
+        entries.append(tuple(group.strip() for group in match.groups()))
+        last_end = match.end()
+    if not entries or entries_str[last_end:].strip():
+        return _TIMELINE_ERROR_HTML
+
+    is_left = direction == 'l'
+    padding_style = 'padding-right: 32px; text-align: right;' if is_left else 'padding-left: 32px; text-align: left;'
+    axis_side = 'right' if is_left else 'left'
+    axis_shift = 'translateX(50%)' if is_left else 'translateX(-50%)'
+    # 轴线与圆点共用同一条中心线：轴线宽 2px、圆点宽 12px，均以中心对齐 10px 处
+    line_style = (
+        f'position: absolute; top: 6px; bottom: 6px; {axis_side}: 10px; width: 2px; '
+        f'background: {color}; opacity: 0.75; transform: {axis_shift};'
+    )
+
+    parts = [
+        f'<span class="md-timeline" style="position: relative; display: block; margin: 20px 0; box-sizing: border-box; {padding_style}">',
+        f'<span aria-hidden="true" style="{line_style}"></span>'
+    ]
+    for time_text, name_text, content_text in entries:
+        dot_style = (
+            f'position: absolute; top: 8px; {axis_side}: -22px; width: 12px; height: 12px; '
+            f'border-radius: 50%; background: {color}; box-shadow: 0 0 6px {color}; '
+            f'transform: {axis_shift};'
+        )
+        card_style = (
+            'display: block; margin-bottom: 18px; padding: 10px 14px; border-radius: 8px; '
+            'background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.14);'
+        )
+        parts.append(
+            '<span class="md-timeline-item" style="position: relative; display: block;">'
+            f'<span aria-hidden="true" style="{dot_style}"></span>'
+            f'<span style="{card_style}">'
+            f'<span style="display: block; color: #FFFFFF; font-weight: bold; font-size: 0.95em;">{html.escape(time_text)}</span>'
+            f'<span style="display: block; color: {color}; font-weight: bold; font-size: 1.25em; margin: 4px 0;">{html.escape(name_text)}</span>'
+            f'<span style="display: block; color: #FFFFFF; font-size: 1em; line-height: 1.5;">{html.escape(content_text)}</span>'
+            '</span></span>'
+        )
+    parts.append('</span>')
+    return ''.join(parts)
+
+
+def extract_timeline_blocks(text):
+    """把单行时间轴块替换为占位符，避免被后续控制符解析打断"""
+    placeholders = {}
+    lines = text.split('\n')
+    in_code_block = False
+
+    for index, line in enumerate(lines):
+        if line.strip().startswith('```'):
+            in_code_block = not in_code_block
+            continue
+        if in_code_block:
+            continue
+
+        result = []
+        pos = 0
+        while True:
+            match = re.search(r'%tl(?=\s|%)', line[pos:])
+            if not match:
+                result.append(line[pos:])
+                break
+            start = pos + match.start()
+            result.append(line[pos:start])
+            open_end = line.find('%', start + 3)
+            close_start = line.find('%NONE%', open_end + 1) if open_end != -1 else -1
+            if open_end == -1 or close_start == -1:
+                timeline_html = _TIMELINE_ERROR_HTML
+                next_pos = len(line)
+            else:
+                timeline_html = _build_timeline_html(line[start + 3:open_end], line[open_end + 1:close_start])
+                next_pos = close_start + len('%NONE%')
+
+            token = f'{_TIMELINE_PLACEHOLDER_PREFIX}{len(placeholders)}{_TIMELINE_PLACEHOLDER_SUFFIX}'
+            placeholders[token] = timeline_html
+            result.append(token)
+            pos = next_pos
+            if pos >= len(line):
+                break
+
+        lines[index] = ''.join(result)
+
+    return '\n'.join(lines), placeholders
+
+
+def restore_timeline_blocks(html_content, placeholders):
+    """Markdown 转换完成后把占位符还原成时间轴 HTML"""
+    for token, timeline_html in placeholders.items():
+        html_content = html_content.replace(token, timeline_html)
+    return html_content
+
+
+# 扇形统计图自定义格式：%pc%(<颜色>,<名字>,<比例>)...%NONE%
+_PC_ERROR_HTML = '<span style="color: #FF0000;">扇形统计图格式错误</span>'
+_PC_PLACEHOLDER_PREFIX = 'MDPCPLACEHOLDER'
+_PC_PLACEHOLDER_SUFFIX = 'X'
+
+
+def _format_pc_ratio(ratio):
+    """把 Decimal 比例格式化为不带多余 0 的普通数字文本"""
+    text = format(ratio, 'f')
+    if '.' in text:
+        text = text.rstrip('0').rstrip('.')
+    return text
+
+
+def _build_pie_chart_html(entries_str):
+    """根据 <颜色>,<名字>,<比例> 条目生成扇形统计图；格式错误则返回红色错误文字"""
+    entry_pattern = re.compile(r'\(\s*([^(),]*?)\s*,\s*([^()]*?)\s*,\s*([^(),]*?)\s*\)')
+    entries = []
+    last_end = 0
+    for match in entry_pattern.finditer(entries_str):
+        if entries_str[last_end:match.start()].strip():
+            return _PC_ERROR_HTML
+        entries.append(tuple(group.strip() for group in match.groups()))
+        last_end = match.end()
+    if not entries or entries_str[last_end:].strip():
+        return _PC_ERROR_HTML
+
+    slices = []
+    total = Decimal('0')
+    for color_text, name_text, ratio_text in entries:
+        color = _parse_timeline_color(color_text)
+        if color is None or not name_text:
+            return _PC_ERROR_HTML
+        try:
+            ratio = Decimal(ratio_text)
+        except (InvalidOperation, ValueError):
+            return _PC_ERROR_HTML
+        if not ratio.is_finite() or ratio <= 0:
+            return _PC_ERROR_HTML
+        total += ratio
+        slices.append((color, name_text, ratio))
+
+    # 总比例必须严格等于 100（Decimal 避免浮点误差）
+    if total != Decimal('100'):
+        return _PC_ERROR_HTML
+
+    cx = cy = 110
+    radius = 88
+    angle = -90.0  # 从 12 点方向顺时针绘制
+    slice_parts = []
+    for idx, (color, _name, ratio) in enumerate(slices):
+        sweep = float(ratio) / 100.0 * 360.0
+        end_angle = angle + sweep
+        if len(slices) == 1:
+            d = (f'M {cx} {cy - radius} A {radius} {radius} 0 1 1 {cx} {cy + radius} '
+                 f'A {radius} {radius} 0 1 1 {cx} {cy - radius} Z')
+        else:
+            x1 = cx + radius * math.cos(math.radians(angle))
+            y1 = cy + radius * math.sin(math.radians(angle))
+            x2 = cx + radius * math.cos(math.radians(end_angle))
+            y2 = cy + radius * math.sin(math.radians(end_angle))
+            large_arc = 1 if sweep > 180 else 0
+            d = (f'M {cx} {cy} L {x1:.3f} {y1:.3f} A {radius} {radius} 0 '
+                 f'{large_arc} 1 {x2:.3f} {y2:.3f} Z')
+        mid_angle = math.radians(angle + sweep / 2.0)
+        tx = cx + radius * 0.62 * math.cos(mid_angle)
+        ty = cy + radius * 0.62 * math.sin(mid_angle)
+        slice_parts.append(
+            f'<g class="md-pie-slice" data-index="{idx}" style="transition: opacity 0.2s;">'
+            f'<path d="{d}" fill="{color}" stroke="#ffffff" stroke-width="1.5"></path>'
+            f'<text x="{tx:.3f}" y="{ty:.3f}" text-anchor="middle" dominant-baseline="central" '
+            f'fill="#ffffff" font-size="13" font-weight="bold">{_format_pc_ratio(ratio)}%</text>'
+            f'</g>'
+        )
+        angle = end_angle
+
+    legend_parts = []
+    for idx, (color, name_text, _ratio) in enumerate(slices):
+        legend_parts.append(
+            f'<span class="md-pie-legend-item" data-index="{idx}" '
+            f'style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; '
+            f'border-radius: 6px; cursor: default; transition: opacity 0.2s, background-color 0.2s;">'
+            f'<span class="md-pie-swatch" style="display: inline-block; width: 14px; height: 14px; '
+            f'border-radius: 3px; background: {color}; flex: 0 0 14px;"></span>'
+            f'<span>{html.escape(name_text)}</span>'
+            f'</span>'
+        )
+
+    return (
+        '<span class="md-pie" style="display: flex; flex-wrap: wrap; align-items: center; gap: 20px; '
+        'background: #ffffff; color: #222222; border-radius: 12px; padding: 20px; margin: 20px 0; '
+        'box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15); box-sizing: border-box;">'
+        '<svg class="md-pie-chart" viewBox="0 0 220 220" width="220" height="220" '
+        'style="flex: 0 0 220px;" role="img" aria-label="扇形统计图">'
+        + ''.join(slice_parts) +
+        '</svg>'
+        '<span class="md-pie-legend" style="display: flex; flex-direction: column; gap: 8px; '
+        'flex: 1 1 160px; min-width: 140px;">'
+        + ''.join(legend_parts) +
+        '</span></span>'
+    )
+
+
+def extract_pie_blocks(text):
+    """把单行扇形统计图块替换为占位符，避免被后续控制符解析打断"""
+    placeholders = {}
+    lines = text.split('\n')
+    in_code_block = False
+
+    for index, line in enumerate(lines):
+        if line.strip().startswith('```'):
+            in_code_block = not in_code_block
+            continue
+        if in_code_block:
+            continue
+
+        result = []
+        pos = 0
+        while True:
+            match = re.search(r'%pc(?=\s|%)', line[pos:])
+            if not match:
+                result.append(line[pos:])
+                break
+            start = pos + match.start()
+            result.append(line[pos:start])
+            open_end = line.find('%', start + 3)
+            close_start = line.find('%NONE%', open_end + 1) if open_end != -1 else -1
+            if open_end == -1 or close_start == -1:
+                pie_html = _PC_ERROR_HTML
+                next_pos = len(line)
+            else:
+                pie_html = _build_pie_chart_html(line[open_end + 1:close_start])
+                next_pos = close_start + len('%NONE%')
+
+            token = f'{_PC_PLACEHOLDER_PREFIX}{len(placeholders)}{_PC_PLACEHOLDER_SUFFIX}'
+            placeholders[token] = pie_html
+            result.append(token)
+            pos = next_pos
+            if pos >= len(line):
+                break
+
+        lines[index] = ''.join(result)
+
+    return '\n'.join(lines), placeholders
+
+
+def restore_pie_blocks(html_content, placeholders):
+    """Markdown 转换完成后把占位符还原成扇形统计图 HTML"""
+    for token, pie_html in placeholders.items():
+        html_content = html_content.replace(token, pie_html)
+    return html_content
+
+
+# 函数图象自定义格式：%f [c:l/d]#函数?颜色##函数?颜色#...%NONE%
+_FUNC_ERROR_HTML = '<span style="color: #FF0000;">函数格式错误</span>'
+_FUNC_PLACEHOLDER_PREFIX = 'MDFPLACEHOLDER'
+_FUNC_PLACEHOLDER_SUFFIX = 'X'
+_FUNC_NAMES = {
+    'sin': 'Math.sin', 'cos': 'Math.cos', 'tan': 'Math.tan',
+    'asin': 'Math.asin', 'acos': 'Math.acos', 'atan': 'Math.atan',
+    'sinh': 'Math.sinh', 'cosh': 'Math.cosh', 'tanh': 'Math.tanh',
+    'sqrt': 'Math.sqrt', 'abs': 'Math.abs', 'log': 'Math.log', 'ln': 'Math.log',
+    'log10': 'Math.log10', 'exp': 'Math.exp', 'floor': 'Math.floor',
+    'ceil': 'Math.ceil', 'round': 'Math.round', 'sign': 'Math.sign',
+    'min': 'Math.min', 'max': 'Math.max', 'pow': 'Math.pow', 'atan2': 'Math.atan2'
+}
+_FUNC_CONSTANTS = {'pi': 'Math.PI', 'e': 'Math.E'}
+_FUNC_TOKEN_RE = re.compile(r'\s*(\d+\.?\d*(?:[eE][+-]?\d+)?|\.\d+(?:[eE][+-]?\d+)?|[A-Za-z_][A-Za-z_0-9]*|\*\*|[+\-*/^(),=])')
+
+
+def _func_insert_implicit_mul(expr):
+    """在函数表达式中补上省略的乘号，如 2x -> 2*x，(x+1)x -> (x+1)*x"""
+    tokens = []
+    pos = 0
+    while pos < len(expr):
+        match = _FUNC_TOKEN_RE.match(expr, pos)
+        if not match:
+            if expr[pos:].strip() == '':
+                break
+            return None
+        tokens.append(match.group(1))
+        pos = match.end()
+    if not tokens:
+        return None
+
+    def is_value_end(token):
+        """可作为乘号左侧的 token：数字、变量名、右括号"""
+        return token == ')' or re.match(r'[\d.]|[A-Za-z_]', token) is not None
+
+    def is_value_start(token):
+        """可作为乘号右侧的 token：数字、变量名、左括号（右括号/运算符不可）"""
+        return token == '(' or re.match(r'[\d.]|[A-Za-z_]', token) is not None
+
+    result = []
+    for i, token in enumerate(tokens):
+        if i > 0:
+            prev = tokens[i - 1]
+            func_call = prev in _FUNC_NAMES and token == '('
+            if is_value_end(prev) and is_value_start(token) and not func_call:
+                result.append('*')
+        result.append(token)
+    return ' '.join(result)
+
+
+def _func_ast_to_js(node):
+    """把通过白名单校验的 Python AST 节点转成安全的 JS 表达式"""
+    if isinstance(node, ast.Constant):
+        if isinstance(node.value, bool) or not isinstance(node.value, (int, float)):
+            return None
+        return repr(node.value)
+    if isinstance(node, ast.Name):
+        if node.id == 'x':
+            return 'x'
+        return _FUNC_CONSTANTS.get(node.id)
+    if isinstance(node, ast.BinOp):
+        left, right = _func_ast_to_js(node.left), _func_ast_to_js(node.right)
+        if left is None or right is None:
+            return None
+        ops = {
+            ast.Add: lambda: f'({left}+{right})',
+            ast.Sub: lambda: f'({left}-{right})',
+            ast.Mult: lambda: f'({left}*{right})',
+            ast.Div: lambda: f'({left}/{right})',
+            ast.Mod: lambda: f'({left}%{right})',
+            ast.Pow: lambda: f'Math.pow({left},{right})'
+        }
+        maker = ops.get(type(node.op))
+        return maker() if maker else None
+    if isinstance(node, ast.UnaryOp):
+        operand = _func_ast_to_js(node.operand)
+        if operand is None:
+            return None
+        if isinstance(node.op, ast.UAdd):
+            return f'(+{operand})'
+        if isinstance(node.op, ast.USub):
+            return f'(-{operand})'
+        return None
+    if isinstance(node, ast.Call):
+        if not isinstance(node.func, ast.Name) or node.func.id not in _FUNC_NAMES or node.keywords:
+            return None
+        args = [_func_ast_to_js(arg) for arg in node.args]
+        if not args or any(arg is None for arg in args):
+            return None
+        return f'{_FUNC_NAMES[node.func.id]}({",".join(args)})'
+    return None
+
+
+def _func_expr_to_js(expr_text):
+    """校验单个函数表达式并返回安全的 JS 表达式；非法返回 None"""
+    raw = expr_text.strip().replace('^', '**')
+    spaced = _func_insert_implicit_mul(raw)
+    if spaced is None:
+        return None
+    try:
+        tree = ast.parse(spaced, mode='eval')
+    except SyntaxError:
+        return None
+    return _func_ast_to_js(tree.body)
+
+
+def _parse_function_item(expr_text):
+    """解析单个函数项，返回 (js, vertical) 或 None；x=<常量> 表示竖直线"""
+    vertical_match = re.fullmatch(r'\s*x\s*=\s*(.+?)\s*', expr_text)
+    if vertical_match:
+        right = vertical_match.group(1)
+        if re.search(r'\bx\b', right):
+            return None
+        js = _func_expr_to_js(right)
+        return (js, True) if js is not None else None
+    js = _func_expr_to_js(expr_text)
+    return (js, False) if js is not None else None
+
+
+def _build_function_html(params_str, funcs_str):
+    """根据参数和函数列表生成函数图象卡片；格式错误返回红色错误文字"""
+    theme = 'l'
+    seen = set()
+    if params_str.strip():
+        for part in params_str.strip().split('|'):
+            part = part.strip()
+            if ':' not in part:
+                return _FUNC_ERROR_HTML
+            key, value = (item.strip() for item in part.split(':', 1))
+            if key != 'c' or key in seen or value not in ('l', 'd'):
+                return _FUNC_ERROR_HTML
+            seen.add(key)
+            theme = value
+
+    # 逐项解析 #函数?颜色##函数?颜色#... ，任一项非法即整体错误
+    items = []
+    pos = 0
+    while pos < len(funcs_str):
+        if funcs_str[pos] != '#':
+            return _FUNC_ERROR_HTML
+        qmark = funcs_str.find('?', pos + 1)
+        end = funcs_str.find('#', qmark + 1) if qmark != -1 else -1
+        if qmark == -1 or end == -1 or end <= qmark:
+            return _FUNC_ERROR_HTML
+        expr_text = funcs_str[pos + 1:qmark].strip()
+        color = _parse_timeline_color(funcs_str[qmark + 1:end])
+        if not expr_text or color is None:
+            return _FUNC_ERROR_HTML
+        parsed = _parse_function_item(expr_text)
+        if parsed is None:
+            return _FUNC_ERROR_HTML
+        js, vertical = parsed
+        items.append({'expr': expr_text, 'js': js, 'color': color, 'vertical': vertical})
+        pos = end + 1
+    if not items:
+        return _FUNC_ERROR_HTML
+
+    funcs_json = html.escape(json.dumps(items, ensure_ascii=False), quote=True)
+    row_parts = []
+    for item in items:
+        expr_attr = html.escape(item['expr'], quote=True)
+        row_parts.append(
+            '<span class="md-func-row">'
+            f'<code>{html.escape(item["expr"])}</code>'
+            f'<button type="button" class="md-func-copy" data-expr="{expr_attr}">复制</button>'
+            '</span>'
+        )
+    all_expr = html.escape('\n'.join(item['expr'] for item in items), quote=True)
+
+    return (
+        f'<span class="md-func md-func-{"light" if theme == "l" else "dark"}" data-funcs="{funcs_json}">'
+        '<span class="md-func-plot">'
+        '<svg class="md-func-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 220" '
+        'preserveAspectRatio="none"></svg>'
+        '<span class="md-func-hint">拖动平移 · 滚轮缩放</span>'
+        '</span>'
+        '<span class="md-func-toolbar">'
+        '<button type="button" class="md-func-toggle">展开函数列表</button>'
+        '<button type="button" class="md-func-center">回到中心</button>'
+        f'<button type="button" class="md-func-copy-all" data-all="{all_expr}">复制所有函数</button>'
+        '</span>'
+        '<span class="md-func-list" hidden>'
+        + ''.join(row_parts) +
+        '</span></span>'
+    )
+
+
+def extract_function_blocks(text):
+    """把单行函数图象块替换为占位符，避免被后续控制符解析打断"""
+    placeholders = {}
+    lines = text.split('\n')
+    in_code_block = False
+
+    for index, line in enumerate(lines):
+        if line.strip().startswith('```'):
+            in_code_block = not in_code_block
+            continue
+        if in_code_block:
+            continue
+
+        result = []
+        pos = 0
+        while True:
+            match = re.search(r'%f(?=\s|%)', line[pos:])
+            if not match:
+                result.append(line[pos:])
+                break
+            start = pos + match.start()
+            result.append(line[pos:start])
+            open_end = line.find('%', start + 2)
+            close_start = line.find('%NONE%', open_end + 1) if open_end != -1 else -1
+            if open_end == -1 or close_start == -1:
+                func_html = _FUNC_ERROR_HTML
+                next_pos = len(line)
+            else:
+                func_html = _build_function_html(line[start + 2:open_end], line[open_end + 1:close_start])
+                next_pos = close_start + len('%NONE%')
+
+            token = f'{_FUNC_PLACEHOLDER_PREFIX}{len(placeholders)}{_FUNC_PLACEHOLDER_SUFFIX}'
+            placeholders[token] = func_html
+            result.append(token)
+            pos = next_pos
+            if pos >= len(line):
+                break
+
+        lines[index] = ''.join(result)
+
+    return '\n'.join(lines), placeholders
+
+
+def restore_function_blocks(html_content, placeholders):
+    """Markdown 转换完成后把占位符还原成函数图象 HTML"""
+    for token, func_html in placeholders.items():
+        html_content = html_content.replace(token, func_html)
+    return html_content
+
+
 # Markdown处理函数
 def process_markdown_content(markdown_content):
     """处理Markdown内容，支持自定义符号和扩展功能"""
     # 预处理：处理自定义颜色和背景色控制符
     def process_color_controls(text):
-        # 定义特殊颜色代码映射
-        color_map = {
-            'NONE': 'inherit',  # 恢复默认颜色
-            'R': '#FF0000',     # 红色
-            'G': '#00FF00',     # 绿色
-            'B': '#0000FF',     # 蓝色
-            'Y': '#FFFF00',     # 黄色
-            'P': '#FFC0CB',     # 粉色
-            'U': '#800080',     # 紫色
-            'K': '#000000'      # 黑色
-        }
-        
+        # 颜色缩写映射使用模块顶部的全局 color_map
+
         # 辅助函数：计算颜色的反色
         def invert_color(hex_color):
             """计算颜色的反色，用于描边默认颜色"""
@@ -334,8 +892,13 @@ def process_markdown_content(markdown_content):
         
         return '\n'.join(processed_lines)
     
-    # 先处理颜色控制符
-    processed_content = process_color_controls(markdown_content)
+    # 先提取时间轴、扇形统计图与函数图象块（必须在颜色控制符之前处理）
+    processed_content, timeline_placeholders = extract_timeline_blocks(markdown_content)
+    processed_content, pie_placeholders = extract_pie_blocks(processed_content)
+    processed_content, func_placeholders = extract_function_blocks(processed_content)
+
+    # 再处理颜色控制符
+    processed_content = process_color_controls(processed_content)
     
     # 转换Markdown为HTML，添加代码高亮、数学公式和文本格式支持
     extensions = [
@@ -365,7 +928,12 @@ def process_markdown_content(markdown_content):
     }
     
     html_content = markdown.markdown(processed_content, extensions=extensions, extension_configs=extension_configs)
-    
+
+    # 还原时间轴、扇形统计图与函数图象块
+    html_content = restore_timeline_blocks(html_content, timeline_placeholders)
+    html_content = restore_pie_blocks(html_content, pie_placeholders)
+    html_content = restore_function_blocks(html_content, func_placeholders)
+
     # 后处理：处理特殊附件链接
     def process_download_links(html_content):
         import re
@@ -647,6 +1215,16 @@ def index():
                           blognamestart=settings['blognamestart'],
                           headerlightcount=settings['headerlightcount'])
 
+@app.route('/notitle')
+def notitle():
+    """首页 - 跳过开场页面，直接显示主内容"""
+    settings = get_blog_settings()
+    return render_template('index.html',
+                          skip_welcome=True,
+                          blogname=settings['blogname'],
+                          blognamestart=settings['blognamestart'],
+                          headerlightcount=settings['headerlightcount'])
+
 @app.route('/api/friendly_links')
 @app.route('/friendly_links.json')  # 旧接口兼容
 def friendly_links():
@@ -771,8 +1349,7 @@ def filter_articles():
                             with open(config_path, 'r', encoding='utf-8') as f:
                                 config = json.load(f)
                             
-                            icon_path = os.path.join(article_path, 'icon.png')
-                            has_icon = os.path.exists(icon_path)
+                            has_icon = find_article_icon(article_path) is not None
                             
                             pub_date = None
                             if 'pub_date' in config:
@@ -884,8 +1461,7 @@ def blog_list(category=None):
                                     config = json.load(f)
                                 
                                 # 检查是否有封面图片
-                                icon_path = os.path.join(article_path, 'icon.png')
-                                has_icon = os.path.exists(icon_path)
+                                has_icon = find_article_icon(article_path) is not None
                                 
                                 # 获取文章修改日期（使用blog.md文件的修改日期）
                                 pub_date = None
@@ -958,8 +1534,7 @@ def blog_list(category=None):
                                 config = json.load(f)
                             
                             # 检查是否有封面图片
-                            icon_path = os.path.join(article_path, 'icon.png')
-                            has_icon = os.path.exists(icon_path)
+                            has_icon = find_article_icon(article_path) is not None
                             
                             # 获取文章修改日期
                             pub_date = None
@@ -1045,18 +1620,8 @@ def get_article_content(category, article_id):
             
             # 预处理：处理自定义颜色和背景色控制符
             def process_color_controls(text):
-                # 定义特殊颜色代码映射
-                color_map = {
-                    'NONE': 'inherit',  # 恢复默认颜色
-                    'R': '#FF0000',     # 红色
-                    'G': '#00FF00',     # 绿色
-                    'B': '#0000FF',     # 蓝色
-                    'Y': '#FFFF00',     # 黄色
-                    'P': '#FFC0CB',     # 粉色
-                    'U': '#800080',     # 紫色
-                    'K': '#000000'      # 黑色
-                }
-                
+                # 颜色缩写映射使用模块顶部的全局 color_map
+
                 # 辅助函数：计算颜色的反色
                 def invert_color(hex_color):
                     """计算颜色的反色，用于描边默认颜色"""
@@ -1300,8 +1865,13 @@ def get_article_content(category, article_id):
                 
                 return '\n'.join(processed_lines)
             
-            # 先处理颜色控制符
-            processed_content = process_color_controls(md_content)
+            # 先提取时间轴、扇形统计图与函数图象块（必须在颜色控制符之前处理）
+            processed_content, timeline_placeholders = extract_timeline_blocks(md_content)
+            processed_content, pie_placeholders = extract_pie_blocks(processed_content)
+            processed_content, func_placeholders = extract_function_blocks(processed_content)
+
+            # 再处理颜色控制符
+            processed_content = process_color_controls(processed_content)
             
             # 转换Markdown为HTML，添加代码高亮、数学公式和文本格式支持
             extensions = [
@@ -1331,6 +1901,11 @@ def get_article_content(category, article_id):
             }
             
             content = markdown.markdown(processed_content, extensions=extensions, extension_configs=extension_configs)
+
+            # 还原时间轴、扇形统计图与函数图象块
+            content = restore_timeline_blocks(content, timeline_placeholders)
+            content = restore_pie_blocks(content, pie_placeholders)
+            content = restore_function_blocks(content, func_placeholders)
             
             # 后处理：处理特殊附件链接
             def process_download_links(html_content):
@@ -1374,23 +1949,35 @@ def get_article_content(category, article_id):
     else:
         content = '<p>文章内容不存在</p>'
     
+    # 转载模式：仅布尔 true 生效；缺少 owner 时给出明确提示文字
+    is_repost = config.get('copy') is True
+    if is_repost:
+        owner = config.get('owner')
+        if not isinstance(owner, str) or not owner.strip():
+            owner = '请在文章配置(config.json)中指定owner'
+    else:
+        owner = 'manyJ'
+
     return {
         'title': config.get('title', '无标题'),
         'small_title': config.get('small_title', '无简介'),
         'content': content,
         'update_date': update_date,
-        'ai': config.get('ai', '')
+        'ai': config.get('ai', ''),
+        'license': config.get('license') or 'CC BY-NC-SA 4.0',
+        'repost': is_repost,
+        'owner': owner
     }
 
 @app.route('/api/articles/icon/<category>/<article_id>')
 @app.route('/read/<category>/<article_id>/icon')  # 旧接口兼容
 def get_article_icon(category, article_id):
-    """获取文章封面图片"""
+    """获取文章封面图片，支持 png/jpg/jpeg/webp"""
     article_path = os.path.join(BLOG_DIR, category, article_id)
-    icon_path = os.path.join(article_path, 'icon.png')
-    
-    if os.path.exists(icon_path):
-        return send_from_directory(article_path, 'icon.png')
+    icon_filename = find_article_icon(article_path)
+
+    if icon_filename:
+        return send_from_directory(article_path, icon_filename)
     else:
         return send_from_directory('css/all', 'favicon.ico')
 
@@ -1648,6 +2235,88 @@ def preview_markdown():
     except Exception as e:
         return {'error': f'处理Markdown失败: {str(e)}'}, 500
 
+def _unquote_url_text(value):
+    """把可能被多层 URL 编码（如 %25E9...）的文本还原成原文"""
+    prev = None
+    for _ in range(5):
+        if value == prev:
+            break
+        prev = value
+        value = urllib.parse.unquote(value)
+    return value
+
+
+@app.route('/api/share/<category>/<article>')
+def api_share(category, article):
+    """获取或创建文章的分享短 id（仅对真实存在的文章生成）"""
+    # 前端拿到的分类/文章名本身已是 URL 编码串，请求时又编码一次，
+    # Flask 只解一层；验证目录前先反复解码还原成真实目录名。
+    real_category = _unquote_url_text(category)
+    real_article = _unquote_url_text(article)
+    article_path = os.path.join(BLOG_DIR, real_category, real_article)
+    if not (os.path.isdir(article_path) and os.path.exists(os.path.join(article_path, 'blog.md'))):
+        return jsonify({'success': False, 'message': '文章不存在'}), 404
+
+    try:
+        init_share_db()
+        conn = sqlite3.connect(SHARE_DB_PATH)
+        try:
+            row = conn.execute(
+                'SELECT short_id FROM sharelink WHERE category = ? AND article = ? LIMIT 1',
+                (category, article)
+            ).fetchone()
+            if row:
+                return jsonify({'success': True, 'short_id': row[0]})
+
+            # 冲突则重试，确保三位 id 唯一
+            for _ in range(100):
+                short_id = generate_share_id()
+                exists = conn.execute(
+                    'SELECT 1 FROM sharelink WHERE short_id = ?', (short_id,)
+                ).fetchone()
+                if exists:
+                    continue
+                conn.execute(
+                    'INSERT INTO sharelink (category, article, short_id) VALUES (?, ?, ?)',
+                    (category, article, short_id)
+                )
+                conn.commit()
+                return jsonify({'success': True, 'short_id': short_id})
+
+            return jsonify({'success': False, 'message': '生成简短id失败'}), 500
+        finally:
+            conn.close()
+    except Exception as e:
+        print(f"生成分享链接失败: {e}")
+        return jsonify({'success': False, 'message': f'生成分享链接失败: {str(e)}'}), 500
+
+# 分享短链接数据库
+SHARE_DB_PATH = os.path.join(os.path.dirname(__file__), 'instance', 'share.db')
+SHARE_ID_CHARS = string.ascii_lowercase + string.digits
+
+
+def init_share_db():
+    """确保分享数据库与 sharelink 表存在（列顺序：分类、文章、简短id）"""
+    os.makedirs(os.path.dirname(SHARE_DB_PATH), exist_ok=True)
+    conn = sqlite3.connect(SHARE_DB_PATH)
+    try:
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS sharelink (
+                category TEXT NOT NULL,
+                article TEXT NOT NULL,
+                short_id TEXT NOT NULL UNIQUE
+            )
+        ''')
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def generate_share_id():
+    """生成三位数字+小写字母混合 id"""
+    return ''.join(random.choice(SHARE_ID_CHARS) for _ in range(3))
+
+
 # 数据库初始化
 def init_db():
     """初始化SQLite数据库"""
@@ -1890,8 +2559,32 @@ def browsertest():
         user_agent=user_agent,
         request_time=request_time)
 
+@app.errorhandler(404)
+def handle_404(error):
+    """三位字符的根路径视为分享短路由，查到记录则跳转到原文"""
+    short_id = request.path.strip('/')
+    if len(short_id) == 3:
+        init_share_db()
+        conn = sqlite3.connect(SHARE_DB_PATH)
+        try:
+            row = conn.execute(
+                'SELECT category, article FROM sharelink WHERE short_id = ?',
+                (short_id,)
+            ).fetchone()
+        finally:
+            conn.close()
+        if row:
+            # 数据库里存的分类/文章名可能已是 URL 编码形式，跳转前先还原成原文
+            # 再统一编码，避免 %25E9... 这类双重编码导致跳到错误路径。
+            category = urllib.parse.quote(_unquote_url_text(row[0]), safe='')
+            article = urllib.parse.quote(_unquote_url_text(row[1]), safe='')
+            return redirect(f'/read/{category}/{article}')
+    # 非短路由保持 Flask 默认 404
+    return error
+
 # 初始化数据库
 init_db()
+init_share_db()
 
 if __name__ == '__main__':
     app.run(debug=True, port=26178)

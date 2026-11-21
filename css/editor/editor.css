@@ -634,3 +634,24 @@ body::-webkit-scrollbar {
     background-color: #0000FF !important;
     padding: 0 2px;
 }
+
+/* 扇形统计图（%pc%）悬停联动 */
+.md-pie-slice,
+.md-pie-legend-item {
+    transition: opacity 0.2s ease, background-color 0.2s ease;
+}
+
+.md-pie.md-pie-hovering .md-pie-slice:not(.md-pie-active),
+.md-pie.md-pie-hovering .md-pie-legend-item:not(.md-pie-active) {
+    opacity: 0.25 !important;
+}
+
+.md-pie.md-pie-hovering .md-pie-slice.md-pie-active,
+.md-pie.md-pie-hovering .md-pie-legend-item.md-pie-active {
+    opacity: 1 !important;
+}
+
+.md-pie-legend-item.md-pie-active {
+    background-color: #FFD700 !important;
+    color: #111111 !important;
+}

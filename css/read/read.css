@@ -2137,3 +2137,78 @@ th {
         height: 20px;
     }
 }
+
+/* 扇形统计图（%pc%）悬停联动 */
+.md-pie-slice,
+.md-pie-legend-item {
+    transition: opacity 0.2s ease, background-color 0.2s ease;
+}
+
+.md-pie.md-pie-hovering .md-pie-slice:not(.md-pie-active),
+.md-pie.md-pie-hovering .md-pie-legend-item:not(.md-pie-active) {
+    opacity: 0.25 !important;
+}
+
+.md-pie.md-pie-hovering .md-pie-slice.md-pie-active,
+.md-pie.md-pie-hovering .md-pie-legend-item.md-pie-active {
+    opacity: 1 !important;
+}
+
+.md-pie-legend-item.md-pie-active {
+    background-color: #FFD700 !important;
+    color: #111111 !important;
+}
+
+/* 分享区域 */
+.share-section {
+    background-color: #000;
+    margin: 24px 0;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.share-title {
+    color: #fff;
+    font-size: 16px;
+    margin-bottom: 12px;
+}
+
+.share-result {
+    margin-bottom: 12px;
+}
+
+.share-success {
+    color: #4caf50;
+    font-size: 14px;
+    margin-bottom: 8px;
+}
+
+.share-link-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 8px 12px;
+    background-color: rgba(255, 255, 255, 0.05);
+    color: #fff;
+    border: 1px solid #555;
+    border-radius: 4px;
+    font-size: 14px;
+    font-family: inherit;
+}
+
+.share-action {
+    display: inline-block;
+}
+
+@media (max-width: 768px) {
+    .share-action {
+        width: 100%;
+        display: block;
+    }
+}
+
+.share-action:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}

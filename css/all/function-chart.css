@@ -1,0 +1,154 @@
+/* 函数图象（%f%）卡片样式 —— 亮/暗主题 */
+.md-func {
+    display: block;
+    width: 100%;
+    margin: 20px 0;
+    border-radius: 12px;
+    overflow: hidden;
+    box-sizing: border-box;
+    border: 1px solid rgba(128, 128, 128, 0.3);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+}
+
+.md-func-light {
+    background: #ffffff;
+    color: #1f2937;
+}
+
+.md-func-dark {
+    background: #1f2126;
+    color: #e5e7eb;
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+.md-func-plot {
+    display: block;
+    position: relative;
+    width: 100%;
+}
+
+.md-func-svg {
+    display: block;
+    width: 100%;
+    height: 220px;
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.md-func-svg:active {
+    cursor: grabbing;
+}
+
+.md-func-hint {
+    position: absolute;
+    right: 12px;
+    top: 10px;
+    font-size: 12px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    pointer-events: none;
+    opacity: 0.75;
+}
+
+.md-func-light .md-func-hint {
+    color: #6b7280;
+    background: rgba(255, 255, 255, 0.85);
+}
+
+.md-func-dark .md-func-hint {
+    color: #c9ced6;
+    background: rgba(31, 33, 38, 0.85);
+}
+
+.md-func-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+}
+
+.md-func-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 0 12px 12px;
+}
+
+.md-func-list[hidden] {
+    display: none;
+}
+
+.md-func-toggle,
+.md-func-center,
+.md-func-copy,
+.md-func-copy-all {
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 13px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid rgba(128, 128, 128, 0.4);
+    transition: opacity 0.2s ease, background-color 0.2s ease;
+}
+
+.md-func-light .md-func-toggle,
+.md-func-light .md-func-center,
+.md-func-light .md-func-copy,
+.md-func-light .md-func-copy-all {
+    background: #f3f4f6;
+    color: #1f2937;
+}
+
+.md-func-dark .md-func-toggle,
+.md-func-dark .md-func-center,
+.md-func-dark .md-func-copy,
+.md-func-dark .md-func-copy-all {
+    background: #33373e;
+    color: #e5e7eb;
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.md-func-toggle:hover,
+.md-func-center:hover,
+.md-func-copy:hover,
+.md-func-copy-all:hover {
+    opacity: 0.8;
+}
+
+/* 亮色主题下强制深色文字，避免继承站点正文的白色字体导致看不见 */
+.md-func-light .md-func-list,
+.md-func-light .md-func-row,
+.md-func-light .md-func-row code {
+    color: #111111 !important;
+}
+
+.md-func-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 6px 10px;
+    border-radius: 6px;
+}
+
+.md-func-light .md-func-row {
+    background: #f9fafb;
+}
+
+.md-func-dark .md-func-row {
+    background: #26292f;
+}
+
+.md-func-row code {
+    font-family: Consolas, Monaco, monospace;
+    font-size: 13px;
+    word-break: break-all;
+}
+
+.md-func-row .md-func-copy {
+    flex: 0 0 auto;
+    padding: 4px 12px;
+}

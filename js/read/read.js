@@ -322,12 +322,23 @@ async function loadArticleContent() {
         
         // 初始化文章信息显示
         initArticleInfo(data);
+
+        // 文章加载成功后才显示分享区
+        const shareSection = document.getElementById('shareSection');
+        if (shareSection) {
+            shareSection.style.display = 'block';
+        }
         
     } catch (error) {
         console.error('加载文章内容失败:', error);
         document.getElementById('articleContent').innerHTML = '<p class="error">文章加载失败</p>';
     }
 }
+
+// 当前文章的许可协议、版权所有者与转载标记（由文章接口返回后更新）
+let currentArticleLicense = 'CC BY-NC-SA 4.0';
+let currentArticleOwner = 'manyJ';
+let currentArticleIsRepost = false;
 
 // 复制事件处理函数
 function handleCopyEvent(event) {
@@ -351,19 +362,74 @@ function handleCopyEvent(event) {
             second: '2-digit'
         });
         
-        // 作者名称（读取自 blogsettings.json 的 author_name，由后端注入到 window.AUTHOR_NAME）
-        const authorName = (window.AUTHOR_NAME || '').trim() || '作者';
+        // 版权所有者：转载文章使用配置中的 owner，否则回退到站点作者名称
+        const authorName = currentArticleOwner || (window.AUTHOR_NAME || '').trim() || '作者';
         
         // 原文链接：自动取当前页面 URL（去掉查询串与锚点）
         const articleUrl = window.location.origin + window.location.pathname;
         
         // 构建带版权信息的文本
-        const copyrightText = `\n------\n博客内容由${authorName}版权所有\n原文链接：${articleUrl}\n采用CC BY-NC-SA 4.0许可协议\n复制时间：${timeString}`;
+        const copyrightText = `\n------\n博客内容由${authorName}版权所有\n原文链接：${articleUrl}\n采用${currentArticleLicense}许可协议\n复制时间：${timeString}`;
         const modifiedText = selectedText + copyrightText;
         
         // 将修改后的文本写入剪贴板
         event.clipboardData.setData('text/plain', modifiedText);
     }
+}
+
+// 初始化文章分享区：点击请求三位短 id，再次点击复制链接
+function initShareSection() {
+    const shareButton = document.getElementById('shareButton');
+    const shareResult = document.getElementById('shareResult');
+    const shareLinkInput = document.getElementById('shareLinkInput');
+    if (!shareButton || !shareResult || !shareLinkInput) return;
+
+    shareButton.addEventListener('click', async () => {
+        // 已获取短链：复制模式
+        if (shareButton.dataset.state === 'copied') {
+            try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(shareLinkInput.value);
+                } else {
+                    shareLinkInput.select();
+                    if (!document.execCommand('copy')) throw new Error('copy failed');
+                }
+                attachmentToast('已复制', 'success');
+            } catch (e) {
+                attachmentToast('复制失败，可手动选择复制', 'warning');
+            }
+            return;
+        }
+
+        // 首次点击：请求分享短 id
+        const { category, articleId } = getArticleInfo();
+        if (!category || !articleId) {
+            attachmentToast('无法获取当前文章信息', 'error');
+            return;
+        }
+
+        shareButton.disabled = true;
+        shareButton.textContent = '请求中...';
+        attachmentToast('正在请求分享', 'tip');
+
+        try {
+            const response = await fetch(`/api/share/${encodeURIComponent(category)}/${encodeURIComponent(articleId)}`);
+            const data = await response.json();
+            if (!response.ok || !data.success) {
+                throw new Error(data.message || '请求失败');
+            }
+            shareLinkInput.value = `${window.location.origin}/${data.short_id}`;
+            shareResult.style.display = 'block';
+            shareButton.textContent = '点击复制';
+            shareButton.dataset.state = 'copied';
+            shareButton.disabled = false;
+            attachmentToast('已获取到简短id', 'success');
+        } catch (e) {
+            shareButton.disabled = false;
+            shareButton.textContent = '分享文章';
+            attachmentToast('获取分享链接失败', 'error');
+        }
+    });
 }
 
 // 显示复制消息提示
@@ -399,6 +465,23 @@ function showCopyMessage(message) {
 function initArticleInfo(data) {
     // 获取文章更新日期（从后端数据）
     document.getElementById('updateDate').textContent = data.update_date || '未知';
+
+    // 许可协议
+    currentArticleLicense = data.license || 'CC BY-NC-SA 4.0';
+    const licenseEl = document.getElementById('license');
+    if (licenseEl) {
+        licenseEl.textContent = currentArticleLicense;
+    }
+
+    // 转载情况：仅转载模式显示，并同步复制到版权所有者
+    currentArticleIsRepost = data.repost === true;
+    currentArticleOwner = currentArticleIsRepost
+        ? (data.owner || '')
+        : ((window.AUTHOR_NAME || '').trim() || 'manyJ');
+    const repostInfo = document.getElementById('repostInfo');
+    if (repostInfo) {
+        repostInfo.style.display = currentArticleIsRepost ? '' : 'none';
+    }
     
     // 初始化AI总结区域
     if (data.ai && data.ai.trim()) {
@@ -1200,6 +1283,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadArticleContent();
     initSidebar();
     initImagePreviewModal();
+    initShareSection();
 });
 
 
